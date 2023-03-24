@@ -42,13 +42,20 @@ module Earl
       __lock { @spin.suspend }
     end
 
-    # # Identical to `#lock` but aborts if the lock couldn't be acquired until
-    # # timeout is reached, in which case it returns false.
-    # def lock(timeout : Time::Span) : Bool
-    #   ret = true
-    #   __lock { ret = @spin.suspend(timeout) }
-    #   ret
-    # end
+    # Identical to `#lock` but aborts if the lock couldn't be acquired until
+    # timeout is reached, in which case it returns false.
+    #
+    # NOTE: the mutex is unchecked!
+    def lock(timeout : Time::Span) : Bool
+      expires_at = Time.monotonic + timeout
+      __lock do
+        # suspend for the remaining of the timeout
+        reached_timeout = @spin.suspend(expires_at - Time.monotonic)
+        return false if reached_timeout
+      end
+
+      true
+    end
 
     private def __lock(&)
       # try to acquire lock (without spin lock):
@@ -89,19 +96,19 @@ module Earl
       end
     end
 
-    # # Identical to `#synchronize` but aborts if the lock couldn't be acquired
-    # # until timeout is reached, in which case it returns false.
-    # def synchronize(timeout : Time::Span, &) : Bool
-    #   if lock(timeout)
-    #     begin
-    #       yield
-    #     ensure
-    #       unlock
-    #     end
-    #     true
-    #   else
-    #     false
-    #   end
-    # end
+    # Identical to `#synchronize` but aborts if the lock couldn't be acquired
+    # until timeout is reached, in which case it returns false.
+    def synchronize(timeout : Time::Span, &) : Bool
+      if lock(timeout)
+        begin
+          yield
+        ensure
+          unlock
+        end
+        true
+      else
+        false
+      end
+    end
   end
 end

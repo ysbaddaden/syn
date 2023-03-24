@@ -42,11 +42,14 @@ module Earl
       __wait { @condition.wait(pointerof(@mutex)) }
     end
 
-    # Same as `#wait` but only waits until `timeout` is reached. Returns true if
-    # the counter reached zero; returns false if timeout was reached.
-    # def wait(timeout : Time::Span) : Bool
-    #   __wait { return @condition.wait(pointerof(@mutex), timeout) }
-    # end
+    # Same as `#wait` but only waits until `timeout` is reached. Returns `true`
+    # if the counter reached zero; returns `false` if timeout was reached.
+    def wait(timeout : Time::Span) : Bool
+      __wait do
+        timeout_reached = @condition.wait(pointerof(@mutex), timeout)
+        return !timeout_reached
+      end
+    end
 
     private def __wait : Nil
       @mutex.synchronize do

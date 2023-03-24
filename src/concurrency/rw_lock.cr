@@ -23,12 +23,8 @@ module Earl
     end
 
     # def lock_read(timeout : Time::Span) : Bool
-    #   if @mutex.lock(timeout)
+    #   @mutex.synchronize(timeout) do
     #     @readers_count += 1
-    #     @mutex.unlock
-    #     true
-    #   else
-    #     false
     #   end
     # end
 

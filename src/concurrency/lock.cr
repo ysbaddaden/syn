@@ -27,12 +27,16 @@ module Earl
       lock
     end
 
-    # # Identical to `#suspend` but if the fiber isn't manually resumed after
-    # # timeout is reached, then the fiber will be resumed automatically.
-    # def suspend(timeout : Time::Span) : Bool
-    #   unlock
-    #   ::sleep(timeout) # TODO: detect timeout and return false (otherwise true)
-    #   lock
-    # end
+    # Identical to `#suspend` but if the fiber isn't manually resumed after
+    # timeout is reached, then the fiber will be resumed automatically (and the
+    # lock reacquired).
+    #
+    # Returns `true` if the timeout was reached, `false` otherwise.
+    def suspend(timeout : Time::Span) : Bool
+      unlock
+      Earl.sleep(timeout).tap do
+        lock
+      end
+    end
   end
 end

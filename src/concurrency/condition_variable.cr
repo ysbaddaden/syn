@@ -26,11 +26,14 @@ module Earl
       mutex.value.suspend
     end
 
-    # def wait(mutex : Pointer(UnsafeMutex), timeout : Time::Span) : Bool
-    #   current = Fiber.current
-    #   @spin.synchronize { @waiting.push(current) }
-    #   mutex.value.suspend(timeout)
-    # end
+    # Identical to `#wait` but the current fiber will be resumed automatically
+    # when `timeout` is reached. Returns `true` if the timeout was reached,
+    # `false` otherwise.
+    def wait(mutex : Pointer(UnsafeMutex), timeout : Time::Span) : Bool
+      current = Fiber.current
+      @spin.synchronize { @waiting.push(current) }
+      mutex.value.suspend(timeout)
+    end
 
     # Enqueues one waiting fiber. Does nothing if there aren't any waiting
     # fiber.
