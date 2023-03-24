@@ -1,0 +1,15 @@
+name: syn
+version: 0.1.0
+
+authors:
+  - Julien Portalier <julien@portalier.com>
+
+description: |
+  Synchronization primitives to build concurrent and parallel-safe data
+  structures in Crystal.
+
+development_dependencies:
+  timecop:
+    github: crystal-community/timecop.cr
+
+license: Apache-2.0
