@@ -2,7 +2,7 @@ require "../test_helper"
 require "../../src/concurrency/unsafe_mutex"
 require "../../src/concurrency/condition_variable"
 
-module Earl
+module Syn
   class ConditionVariableTest < Minitest::Test
     def test_signal
       m = UnsafeMutex.new

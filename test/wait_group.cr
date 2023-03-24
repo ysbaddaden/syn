@@ -1,7 +1,7 @@
 require "../test_helper"
 require "../../src/concurrency/wait_group"
 
-module Earl
+module Syn
   class WaitGroupTest < Minitest::Test
     def test_lifetime
       wg = WaitGroup.new

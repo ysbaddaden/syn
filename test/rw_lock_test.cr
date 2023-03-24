@@ -2,7 +2,7 @@ require "../test_helper"
 require "../../src/concurrency/rw_lock"
 require "../../src/concurrency/wait_group"
 
-module Earl
+module Syn
   class RWLockTest < Minitest::Test
     def test_lifetime
       rw = RWLock.new

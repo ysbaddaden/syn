@@ -2,7 +2,7 @@ require "./lock"
 require "./spin_lock"
 require "./wait_list"
 
-module Earl
+module Syn
   # An unchecked, Fiber aware, mutually exclusive lock.
   #
   # Prevents two or more fibers to access the same non concurrent piece of code

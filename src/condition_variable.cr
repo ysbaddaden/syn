@@ -2,7 +2,7 @@ require "./spin_lock"
 require "./unsafe_mutex"
 require "./wait_list"
 
-module Earl
+module Syn
   # Synchronize execution of concurrently running fibers.
   #
   # This can be used to replace polling with a waiting list that can be resumed

@@ -1,7 +1,7 @@
 require "./lock"
 require "./atomic_flag"
 
-module Earl
+module Syn
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread
   # context switches that involve the kernel scheduler. Eventually fallsback to
   # a pause or yielding threads.

@@ -2,7 +2,7 @@ require "../test_helper"
 require "../../src/concurrency/unsafe_mutex"
 require "../../src/concurrency/wait_group"
 
-module Earl
+module Syn
   class UnsafeMutexTest < Minitest::Test
     def test_try_lock?
       m = UnsafeMutex.new
@@ -39,7 +39,7 @@ module Earl
       counter = 0
 
       # uses a file to have IO to trigger fiber context switches
-      tmp = File.tempfile("earl_unsafe_mutex", ".txt") do |file|
+      tmp = File.tempfile("syn_unsafe_mutex", ".txt") do |file|
         100.times do
           ::spawn do
             100.times do

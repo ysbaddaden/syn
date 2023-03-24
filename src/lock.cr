@@ -1,4 +1,4 @@
-module Earl
+module Syn
   # :nodoc:
   module Lock
     # Acquires the lock. The execution of the current fiber is suspended until
@@ -34,7 +34,7 @@ module Earl
     # Returns `true` if the timeout was reached, `false` otherwise.
     def suspend(timeout : Time::Span) : Bool
       unlock
-      Earl.sleep(timeout).tap do
+      Syn.sleep(timeout).tap do
         lock
       end
     end

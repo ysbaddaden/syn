@@ -1,10 +1,10 @@
 # :nodoc:
 class Fiber
   # Assumes that a `Fiber` can only ever be blocked once in which case it's
-  # added to an `Earl::WaitList` and suspended, then removed from the list
+  # added to an `Syn::WaitList` and suspended, then removed from the list
   # to then be enqueued again.
   #
-  # You should never use this property outside of `Earl::WaitList`! Or you must
+  # You should never use this property outside of `Syn::WaitList`! Or you must
   # assume the same behavior: add to list -> suspend -> remove from list ->
   # resume.
   #
@@ -28,14 +28,14 @@ class Fiber
   # `Fiber#resumable?`.
   #
   # :nodoc:
-  @__earl_next : Fiber?
+  @__syn_next : Fiber?
 
-  def __earl_next=(value : Fiber?)
-    @__earl_next = value
+  def __syn_next=(value : Fiber?)
+    @__syn_next = value
   end
 end
 
-module Earl
+module Syn
   # Holds a singly linked list of pending `Fiber`. It is used to build all the
   # other concurrency objects. Implemented as a FIFO list.
   #
@@ -45,7 +45,7 @@ module Earl
   # Note that tail is only used when head is set to append fibers to the list,
   # which allows some optimization: no need to check or update it in most
   # situations (outside of `#push`). We also don't need to clear the
-  # `@__earl_next` attribute either (it will be overwritten the next time it's
+  # `@__syn_next` attribute either (it will be overwritten the next time it's
   # pushed to a wait list).
   #
   # :nodoc:
@@ -54,10 +54,10 @@ module Earl
     @tail : Fiber?
 
     def push(fiber : Fiber) : Nil
-      fiber.__earl_next = nil
+      fiber.__syn_next = nil
 
       if @head
-        @tail = @tail.unsafe_as(Fiber).__earl_next = fiber
+        @tail = @tail.unsafe_as(Fiber).__syn_next = fiber
       else
         @tail = @head = fiber
       end
@@ -65,7 +65,7 @@ module Earl
 
     def shift? : Fiber?
       if fiber = @head
-        @head = fiber.@__earl_next
+        @head = fiber.@__syn_next
         fiber
       end
     end
@@ -74,7 +74,7 @@ module Earl
       fiber = @head
       while fiber
         yield fiber
-        fiber = fiber.@__earl_next
+        fiber = fiber.@__syn_next
       end
     end
 
@@ -83,16 +83,16 @@ module Earl
 
       # search item in list
       until curr == fiber
-        prev, curr = curr, curr.unsafe_as(Fiber).@__earl_next
+        prev, curr = curr, curr.unsafe_as(Fiber).@__syn_next
       end
       return unless curr
 
       if prev
         # removing inner or tail
-        prev.__earl_next = curr.@__earl_next
+        prev.__syn_next = curr.@__syn_next
       else
         # removing head
-        @head = curr.@__earl_next
+        @head = curr.@__syn_next
       end
 
       if fiber == @tail

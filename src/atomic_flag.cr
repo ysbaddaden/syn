@@ -11,10 +11,10 @@
 #
 # Another difference is the choice of the `:acquire` and `:release` memory
 # orders for `#test_and_set` and `#clear` instead of the defaut
-# `:sequentially_consistent` because Earl uses atomic flags as a lock mechanism.
+# `:sequentially_consistent` because Syn uses atomic flags as a lock mechanism.
 #
 # :nodoc:
-struct Earl::AtomicFlag
+struct Syn::AtomicFlag
   def initialize
     @value = 0_u8
   end
@@ -34,7 +34,7 @@ end
 # Similar to `AtomicFlag` but limited to a single usage: prevent a block of code
 # to be invoked more than once, for example executing an initializer at most
 # once.
-struct Earl::Once
+struct Syn::Once
   def initialize
     @value = 0_u8
   end

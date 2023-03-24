@@ -1,7 +1,7 @@
 require "./unsafe_mutex"
 require "./condition_variable"
 
-module Earl
+module Syn
   # A many readers, mutually exclusive writer lock.
   #
   # Allow readers to run concurrently but ensures that they will never run

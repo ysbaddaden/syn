@@ -1,7 +1,7 @@
 require "./condition_variable"
 require "./unsafe_mutex"
 
-module Earl
+module Syn
   # Suspend execution until other fibers are finished.
   #
   # :nodoc:

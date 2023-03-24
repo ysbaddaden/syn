@@ -1,7 +1,7 @@
 require "../test_helper"
 require "../../src/concurrency/wait_list"
 
-module Earl
+module Syn
   class WaitListTest < Minitest::Test
     def test_initialize
       list = WaitList.new
@@ -18,20 +18,20 @@ module Earl
       list.push(a)
       assert_equal a, list.@head
       assert_equal a, list.@tail
-      assert_nil a.@__earl_next
+      assert_nil a.@__syn_next
 
       list.push(b)
       assert_equal a, list.@head
       assert_equal b, list.@tail
-      assert_equal b, a.@__earl_next
-      assert_nil b.@__earl_next
+      assert_equal b, a.@__syn_next
+      assert_nil b.@__syn_next
 
       list.push(c)
       assert_equal a, list.@head
       assert_equal c, list.@tail
-      assert_equal b, a.@__earl_next
-      assert_equal c, b.@__earl_next
-      assert_nil c.@__earl_next
+      assert_equal b, a.@__syn_next
+      assert_equal c, b.@__syn_next
+      assert_nil c.@__syn_next
     end
 
     def test_shift?
@@ -67,7 +67,7 @@ module Earl
 
       assert_equal b, list.@head
       assert_equal b, list.@tail
-      assert_nil b.@__earl_next
+      assert_nil b.@__syn_next
     end
 
     def test_each
@@ -130,7 +130,7 @@ module Earl
       list.push(a)
       assert_equal a, list.@head
       assert_equal a, list.@tail
-      assert_nil a.@__earl_next
+      assert_nil a.@__syn_next
     end
 
     def test_each_after_clear
@@ -157,7 +157,7 @@ module Earl
       list.push(c)
       list.delete(a)
       assert_equal b, list.@head
-      assert_equal c, b.@__earl_next
+      assert_equal c, b.@__syn_next
       assert_equal c, list.@tail
     end
 
@@ -172,7 +172,7 @@ module Earl
       list.push(c)
       list.delete(c)
       assert_equal a, list.@head
-      assert_equal b, a.@__earl_next
+      assert_equal b, a.@__syn_next
       assert_equal b, list.@tail
     end
 
@@ -187,7 +187,7 @@ module Earl
       list.push(c)
       list.delete(b)
       assert_equal a, list.@head
-      assert_equal c, a.@__earl_next
+      assert_equal c, a.@__syn_next
       assert_equal c, list.@tail
     end
   end
