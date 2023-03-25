@@ -51,7 +51,7 @@ module Syn
       end
     end
 
-    private def __wait : Nil
+    private def __wait(&) : Nil
       @mutex.synchronize do
         until @counter == 0
           yield

@@ -19,7 +19,7 @@ module Syn
       # :nodoc:
       THRESHOLD = 100
 
-      @flag = AtomicFlag.new
+      @flag = Flag.new
 
       def lock : Nil
         # fast path

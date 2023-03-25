@@ -9,8 +9,6 @@ module Syn
   # when resources are available, while still behaving inside a mutually
   # exclusive context: when a waiting fiber is resumed, the mutex will be
   # locked.
-  #
-  # :nodoc:
   struct ConditionVariable
     def initialize
       @spin = SpinLock.new

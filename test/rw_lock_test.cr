@@ -18,7 +18,7 @@ module Syn
         ::spawn(name: "reader") do
           100.times do
             rw.lock_read do
-              ary.each { |i| counter.add(1) }
+              ary.each { counter.add(1) }
             end
             ::sleep(0)
           end

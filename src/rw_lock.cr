@@ -4,11 +4,9 @@ require "./condition_variable"
 module Syn
   # A many readers, mutually exclusive writer lock.
   #
-  # Allow readers to run concurrently but ensures that they will never run
+  # Allows readers to run concurrently but ensures that they will never run
   # concurrently to a writer. Writers are mutually exclusive to both readers
   # and writers.
-  #
-  # :nodoc:
   struct RWLock
     def initialize
       @mutex = UnsafeMutex.new
