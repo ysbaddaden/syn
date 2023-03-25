@@ -9,6 +9,9 @@ description: |
   structures in Crystal.
 
 development_dependencies:
+  minitest:
+    github: ysbaddaden/minitest.cr
+
   timecop:
     github: crystal-community/timecop.cr
 

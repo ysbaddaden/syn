@@ -1,5 +1,5 @@
-require "../test_helper"
-require "../../src/concurrency/wait_list"
+require "./test_helper"
+require "../src/wait_list"
 
 module Syn
   class WaitListTest < Minitest::Test

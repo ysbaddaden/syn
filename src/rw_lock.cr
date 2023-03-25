@@ -1,4 +1,4 @@
-require "./unsafe_mutex"
+require "./mutex"
 require "./condition_variable"
 
 module Syn
@@ -9,7 +9,7 @@ module Syn
   # and writers.
   struct RWLock
     def initialize
-      @mutex = UnsafeMutex.new
+      @mutex = Mutex.new(:unchecked)
       @condition = ConditionVariable.new
       @readers_count = 0
     end

@@ -1,11 +1,11 @@
-require "../test_helper"
-require "../../src/concurrency/unsafe_mutex"
-require "../../src/concurrency/condition_variable"
+require "./test_helper"
+require "../src/mutex"
+require "../src/condition_variable"
 
 module Syn
   class ConditionVariableTest < Minitest::Test
     def test_signal
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       c = ConditionVariable.new
       done = waiting = 0
 
@@ -31,7 +31,7 @@ module Syn
     end
 
     def test_broadcast
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       c = ConditionVariable.new
       done = waiting = 0
 
@@ -53,7 +53,7 @@ module Syn
     end
 
     def test_producer_consumer
-      mutex = UnsafeMutex.new
+      mutex = Mutex.new(:unchecked)
       cond = ConditionVariable.new
       state = -1
 

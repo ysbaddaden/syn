@@ -1,6 +1,6 @@
-require "../test_helper"
-require "../../src/concurrency/rw_lock"
-require "../../src/concurrency/wait_group"
+require "./test_helper"
+require "../src/rw_lock"
+require "../src/wait_group"
 
 module Syn
   class RWLockTest < Minitest::Test

@@ -1,18 +1,18 @@
-require "../test_helper"
-require "../../src/concurrency/unsafe_mutex"
-require "../../src/concurrency/wait_group"
+require "./test_helper"
+require "../src/mutex"
+require "../src/wait_group"
 
 module Syn
-  class UnsafeMutexTest < Minitest::Test
+  class MutexTest < Minitest::Test
     def test_try_lock?
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       assert m.try_lock?
       refute m.try_lock?
     end
 
     def test_lock
       state = 0
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       m.lock
 
       ::spawn do
@@ -26,24 +26,40 @@ module Syn
       eventually { assert_equal 2, state }
     end
 
+    def test_lock_checked
+      flunk
+    end
+
+    def test_lock_reentrant
+      flunk
+    end
+
     def test_unlock
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       assert m.try_lock?
       m.unlock
       assert m.try_lock?
     end
 
+    def test_unlock_checked
+      flunk
+    end
+
+    def test_unlock_reentrant
+      flunk
+    end
+
     def test_synchronize
-      mutex = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       wg = WaitGroup.new(100)
       counter = 0
 
       # uses a file to have IO to trigger fiber context switches
-      tmp = File.tempfile("syn_unsafe_mutex", ".txt") do |file|
+      tmp = File.tempfile("syn_mutex", ".txt") do |file|
         100.times do
           ::spawn do
             100.times do
-              mutex.synchronize do
+              m.synchronize do
                 file.puts (counter += 1).to_s
               end
             end
@@ -65,7 +81,7 @@ module Syn
     end
 
     def test_suspend
-      m = UnsafeMutex.new
+      m = Mutex.new(:unchecked)
       state = 0
 
       fiber = ::spawn do
@@ -88,7 +104,8 @@ module Syn
       refute m.try_lock?
     end
 
-    # def test_suspend_with_timeout
-    # end
+    def test_suspend_with_timeout
+      flunk
+    end
   end
 end

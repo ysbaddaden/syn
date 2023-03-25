@@ -49,14 +49,19 @@ module Syn
 
     include Lock
 
+    # warn: don't move the type definitions to avoid changing the struct size
+    # these take 16+8 bytes on 64-bit / 8+4 bytes on 32-bit
+    @blocking : WaitList
+    @locked_by : Fiber?
+
+    # the rest take 4 bytes:
+    @type : Type
+    @held : Flag
+    @spin : SpinLock
+    @counter : UInt8
+
     def initialize(type : Type = :checked)
-      # warn: don't move the type definitions to avoid changing the struct size
-
-      # these take 16+8 bytes on 64-bit / 8+4 bytes on 32-bit
       @blocking = WaitList.new
-      @locked_by : Fiber?
-
-      # the rest takes 4 bytes
       @type = type
       @held = Flag.new
       @spin = SpinLock.new

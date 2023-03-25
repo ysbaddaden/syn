@@ -1,5 +1,5 @@
 require "./lock"
-require "./atomic_flag"
+require "./flag"
 
 module Syn
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread

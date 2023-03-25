@@ -1,5 +1,5 @@
 require "./condition_variable"
-require "./unsafe_mutex"
+require "./mutex"
 
 module Syn
   # Suspend execution until other fibers are finished.
@@ -7,7 +7,7 @@ module Syn
   # :nodoc:
   struct WaitGroup
     def initialize(@counter : Int32 = 0)
-      @mutex = UnsafeMutex.new
+      @mutex = Mutex.new(:unchecked)
       @condition = ConditionVariable.new
     end
 
