@@ -1,7 +1,7 @@
 require "minitest/autorun"
 
 class Minitest::Test
-  protected def eventually(timeout : Time::Span = 5.seconds)
+  protected def eventually(timeout : Time::Span = 5.seconds, &)
     start = Time.monotonic
 
     loop do
@@ -14,6 +14,25 @@ class Minitest::Test
       else
         break
       end
+    end
+  end
+
+  protected def async(&block) : Nil
+    done = false
+    exception = nil
+
+    spawn do
+      block.call
+    rescue ex
+      exception = ex
+    ensure
+      done = true
+    end
+
+    eventually { assert done, "Expected async fiber to have finished" }
+
+    if ex = exception
+      raise ex
     end
   end
 end
