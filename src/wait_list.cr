@@ -26,10 +26,11 @@ class Fiber
   # If Crystal ever implements job stealing, this race conditions will be
   # present, and the scheduler will have to take care of it (e.g. using
   # `Fiber#resumable?`.
-  #
+
   # :nodoc:
   @__syn_next : Fiber?
 
+  # :nodoc:
   def __syn_next=(value : Fiber?)
     @__syn_next = value
   end
@@ -37,19 +38,19 @@ end
 
 module Syn
   # Holds a singly linked list of pending `Fiber`. It is used to build all the
-  # other concurrency objects. Implemented as a FIFO list.
-  #
-  # Assumes that a `Fiber` will only ever be in a single `WaitList` at any given
-  # time, and will be suspended while it's in the list.
-  #
-  # Note that tail is only used when head is set to append fibers to the list,
-  # which allows some optimization: no need to check or update it in most
-  # situations (outside of `#push`). We also don't need to clear the
-  # `@__syn_next` attribute either (it will be overwritten the next time it's
-  # pushed to a wait list).
-  #
-  # :nodoc:
+  # other concurrency objects. Implemented as a FIFO list. Assumes that a
+  # `Fiber` can only ever be in a single `WaitList` at any given time, and will
+  # be suspended while it's in the list.
   struct WaitList
+    # NOTE: tail is only used when head is set to append fibers to the list,
+    #       which allows some optimization: no need to check or update it in
+    #       most situations (outside of `#push`). We also don't need to clear
+    #       the `@__syn_next` attribute either (it will be overwritten the next
+    #       time it's pushed to a wait list).
+
+    # TODO: we might still want to clear tail and `@__syn_next` to avoid keeping
+    #       hard references to dead fibers which may impact GC?
+
     @head : Fiber?
     @tail : Fiber?
 
@@ -66,11 +67,12 @@ module Syn
     def shift? : Fiber?
       if fiber = @head
         @head = fiber.@__syn_next
+        # fiber.@__syn_next = nil
         fiber
       end
     end
 
-    def each(&) : Nil
+    def each(& : Fiber ->) : Nil
       fiber = @head
       while fiber
         yield fiber
@@ -85,7 +87,12 @@ module Syn
       until curr == fiber
         prev, curr = curr, curr.unsafe_as(Fiber).@__syn_next
       end
-      return unless curr
+
+      # not in list
+      unless curr
+        # fiber.@__syn_next = nil
+        return
+      end
 
       if prev
         # removing inner or tail
@@ -99,10 +106,13 @@ module Syn
         # removing tail
         @tail = prev
       end
+
+      # fiber.@__syn_next = nil
     end
 
     def clear : Nil
       @head = nil
+      # @tail = nil
     end
   end
 end

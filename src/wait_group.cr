@@ -3,8 +3,6 @@ require "./mutex"
 
 module Syn
   # Suspend execution until other fibers are finished.
-  #
-  # :nodoc:
   struct WaitGroup
     def initialize(@counter : Int32 = 0)
       @mutex = Mutex.new(:unchecked)

@@ -1,8 +1,6 @@
 require "./*"
 
 module Syn
-  # :nodoc:
-  #
   # Returns `true` if the timeout was reached, and returns `false` if the fiber
   # was manually resumed earlier.
   #

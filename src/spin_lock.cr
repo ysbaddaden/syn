@@ -1,6 +1,7 @@
 require "./lock"
 require "./flag"
 
+# :nodoc:
 lib LibC
   fun pthread_yield
 end
@@ -14,13 +15,11 @@ module Syn
   #
   # The implementation is a NOOP unless you specify the `preview_mt` compile
   # flag.
-  #
-  # :nodoc:
   struct SpinLock
     include Lock
 
     {% if flag?(:preview_mt) %}
-      # :nodoc:
+      # :nodoc
       THRESHOLD = 100
 
       @flag = Flag.new
