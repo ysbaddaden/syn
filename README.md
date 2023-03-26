@@ -9,25 +9,6 @@ the data structures) instead of potentially scattered in the HEAP by the Garbage
 Collector.
 
 
-## Core
-
-The following structs are very low-level and meant to implement the other `Syn`
-primitives, but might still be useful:
-
-- `Syn::Lock` is the interface/mixin used in the different locks in `Syn`.
-
-- `Syn::SpinLock` is a NOOP until multi-threading (MT) is enabled, in which case
-  it's meant to very quick lock/unlock to synchronize threads (parallelism).
-
-- `Syn::WaitList` is a singly-linked list of `Fiber`. It assumes that fibers may
-  only ever be in a single wait list at all time and will be suspended while
-  it's in the list (removed immediately before/after being resumed).
-
-  The use of a linked list may not be the best solution (following the list
-  means following each `Fiber`) but avoids allocating `Deque` objects (and
-  allocating / reallocating their buffer) for each and every wait list.
-
-
 ## Primitives
 
 - `Syn::Flag` is an alternative to `Atomic::Flag` that uses the `:acquire` and
@@ -45,4 +26,23 @@ primitives, but might still be useful:
 - `Syn::RWLock` a multiple readers, mutually exclusive writer lock.
 
 - `Syn::WaitGroup` to wait until a set of fibers have terminated.
+
+
+## Core
+
+The following structs are very low-level and meant to implement the other `Syn`
+primitives, but might still be useful:
+
+- `Syn::Lock` is the interface/mixin used in the different locks in `Syn`.
+
+- `Syn::SpinLock` is a NOOP until multi-threading (MT) is enabled, in which case
+  it's meant to very quick lock/unlock to synchronize threads (parallelism).
+
+- `Syn::WaitList` is a singly-linked list of `Fiber`. It assumes that fibers may
+  only ever be in a single wait list at all time and will be suspended while
+  they're in the list.
+
+  The use of a linked list may not be the best solution (following the list
+  means following each `Fiber`) but avoids allocating `Deque` objects (and
+  allocating / reallocating their buffer) for each and every wait list.
 
