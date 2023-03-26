@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: crystal-lang/install-crystal@v1
+      - run: shards install
       - run: make test
 
   test_mt:
@@ -33,4 +34,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: crystal-lang/install-crystal@v1
+      - run: shards install
       - run: make test CRFLAGS=-Dpreview_mt
