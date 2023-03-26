@@ -52,8 +52,6 @@ module Syn
       eventually { assert_equal 100, done }
     end
 
-    # TODO: play ping pong between producer & consumer
-    # FIXME: producer must wait for consumer to be ready (MT: random failures)
     def test_producer_consumer
       m = Mutex.new(:unchecked)
       c = ConditionVariable.new
@@ -64,29 +62,17 @@ module Syn
       ::spawn(name: "consumer") do
         m.synchronize do
           ready = true
-
-          # loop do
-            c.wait(pointerof(m))
-            assert_equal 1, state
-
-            state = 2
-            # c.signal
-          # end
+          c.wait(pointerof(m))
+          assert_equal 1, state
+          state = 2
         end
       end
 
       ::spawn(name: "producer") do
         eventually { assert ready, "expected consumer to eventually be ready" }
-
         m.synchronize { state = 1 }
-        # FIXME: signal may be sent _before_ the other fiber is waiting
         c.signal
       end
-
-      # m.synchronize do
-      #   c.wait(pointerof(m))
-      # end
-      # assert_equal 2, state
 
       eventually { assert_equal 2, state }
     end
