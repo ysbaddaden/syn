@@ -31,11 +31,11 @@ module Syn
     # lock reacquired).
     #
     # Returns `true` if the timeout was reached, `false` otherwise.
-    def suspend(timeout : Time::Span) : Bool
-      unlock
-      reached_timeout = Syn.sleep(timeout)
-      lock
-      reached_timeout
-    end
+    # def suspend(timeout : Time::Span) : Bool
+    #   unlock
+    #   reached_timeout = Syn.sleep(timeout)
+    #   lock
+    #   reached_timeout
+    # end
   end
 end
