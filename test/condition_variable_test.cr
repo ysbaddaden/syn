@@ -57,23 +57,36 @@ module Syn
     def test_producer_consumer
       m = Mutex.new(:unchecked)
       c = ConditionVariable.new
+
       state = -1
+      ready = false
 
       ::spawn(name: "consumer") do
         m.synchronize do
-          loop do
+          ready = true
+
+          # loop do
             c.wait(pointerof(m))
             assert_equal 1, state
+
             state = 2
-          end
+            # c.signal
+          # end
         end
       end
 
       ::spawn(name: "producer") do
+        eventually { assert ready, "expected consumer to eventually be ready" }
+
         m.synchronize { state = 1 }
         # FIXME: signal may be sent _before_ the other fiber is waiting
         c.signal
       end
+
+      # m.synchronize do
+      #   c.wait(pointerof(m))
+      # end
+      # assert_equal 2, state
 
       eventually { assert_equal 2, state }
     end
