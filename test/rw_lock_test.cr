@@ -25,7 +25,7 @@ module Syn
         end
       end
 
-      # writers at mutually exclusive: they can safely modify the array
+      # writers are mutually exclusive: they can safely modify the array
 
       5.times do
         ::spawn(name: "writer: increment") do

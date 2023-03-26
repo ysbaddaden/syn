@@ -16,8 +16,8 @@ module Syn
     end
 
     # Suspends the current fiber. The mutex is unlocked before the fiber is
-    # suspended and will be locked again after the fiber is resumed and before
-    # the function returns.
+    # suspended (the current fiber must be holding the lock) and will be locked
+    # again after the fiber is resumed and before the function returns.
     def wait(mutex : Pointer(Mutex)) : Nil
       current = Fiber.current
       @spin.synchronize { @waiting.push(current) }
@@ -27,11 +27,17 @@ module Syn
     # Identical to `#wait` but the current fiber will be resumed automatically
     # when `timeout` is reached. Returns `true` if the timeout was reached,
     # `false` otherwise.
-    def wait(mutex : Pointer(Mutex), timeout : Time::Span) : Bool
-      current = Fiber.current
-      @spin.synchronize { @waiting.push(current) }
-      mutex.value.suspend(timeout)
-    end
+    # def wait(mutex : Pointer(Mutex), timeout : Time::Span) : Bool
+    #   current = Fiber.current
+    #   @spin.synchronize { @waiting.push(current) }
+    #
+    #   if timeout_reached = mutex.value.suspend(timeout)
+    #     # early resume: must manually remove from waiting list
+    #     @spin.synchronize { @waiting.delete(current) }
+    #   end
+    #
+    #   timeout_reached
+    # end
 
     # Enqueues one waiting fiber. Does nothing if there aren't any waiting
     # fiber.

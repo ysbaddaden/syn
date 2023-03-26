@@ -22,7 +22,7 @@ module Syn
 
       # resume fibers one by one
       0.upto(99) do |i|
-        assert_equal i, done
+        eventually { assert_equal i, done }
         c.signal
         ::sleep(0)
       end
@@ -52,15 +52,17 @@ module Syn
       eventually { assert_equal 100, done }
     end
 
+    # TODO: play ping pong between producer & consumer
+    # FIXME: producer must wait for consumer to be ready (MT: random failures)
     def test_producer_consumer
-      mutex = Mutex.new(:unchecked)
-      cond = ConditionVariable.new
+      m = Mutex.new(:unchecked)
+      c = ConditionVariable.new
       state = -1
 
       ::spawn(name: "consumer") do
-        mutex.synchronize do
+        m.synchronize do
           loop do
-            cond.wait(pointerof(mutex))
+            c.wait(pointerof(m))
             assert_equal 1, state
             state = 2
           end
@@ -68,8 +70,9 @@ module Syn
       end
 
       ::spawn(name: "producer") do
-        mutex.synchronize { state = 1 }
-        cond.signal
+        m.synchronize { state = 1 }
+        # FIXME: signal may be sent _before_ the other fiber is waiting
+        c.signal
       end
 
       eventually { assert_equal 2, state }

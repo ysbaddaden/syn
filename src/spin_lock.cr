@@ -1,6 +1,10 @@
 require "./lock"
 require "./flag"
 
+lib LibC
+  fun pthread_yield
+end
+
 module Syn
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread
   # context switches that involve the kernel scheduler. Eventually fallsback to
@@ -33,8 +37,8 @@ module Syn
 
         # blocking loop
         until @flag.test_and_set
-          # LibC.pthread_yield
-          Intrinsics.pause
+          LibC.pthread_yield
+          # Intrinsics.pause
         end
       end
 

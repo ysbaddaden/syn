@@ -1,14 +1,14 @@
-require "../test_helper"
-require "../../src/concurrency/wait_group"
+require "./test_helper"
+require "../src/wait_group"
 
 module Syn
   class WaitGroupTest < Minitest::Test
     def test_lifetime
       wg = WaitGroup.new
-      wg.add(5)
+      wg.add(1000)
       counter = Atomic(Int32).new(0)
 
-      5.times do
+      1000.times do
         ::spawn do
           wg.done
           counter.add(1)
@@ -16,7 +16,7 @@ module Syn
       end
 
       wg.wait
-      assert_equal 5, counter.get
+      assert_equal 1000, counter.get
     end
   end
 end

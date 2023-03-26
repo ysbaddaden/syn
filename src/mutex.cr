@@ -72,7 +72,7 @@ module Syn
     # Returns false even if the current fiber had previously acquired the lock,
     # but won't cause a deadlock situation.
     def try_lock? : Bool
-      if rs = @held.test_and_set
+      if @held.test_and_set
         unless @type.unchecked?
           @locked_by = Fiber.current
           @counter += 1 if @type.reentrant?
@@ -91,21 +91,26 @@ module Syn
     # raise an `Error`. If reentrant, the counter will be incremented and the
     # method will return.
     def lock : Nil
-      __lock { @spin.suspend }
+      __lock { |_current| @spin.suspend }
     end
 
     # Identical to `#lock` but aborts if the lock couldn't be acquired until
     # timeout is reached, in which case it returns false (failed to acquire
     # lock). Returns true if the lock was acquired.
-    def lock(timeout : Time::Span) : Bool
-      expires_at = Time.monotonic + timeout
-      __lock do
-        # suspend for the remaining of the timeout (may be resumed earlier)
-        reached_timeout = @spin.suspend(expires_at - Time.monotonic)
-        return false if reached_timeout
-      end
-      true
-    end
+    # def lock(timeout : Time::Span) : Bool
+    #   expires_at = Time.monotonic + timeout
+    #
+    #   __lock do |current|
+    #     # suspend for the remaining of the timeout (may be resumed earlier)
+    #     if reached_timeout = @spin.suspend(expires_at - Time.monotonic)
+    #       # early resume: must manually remove from blocking list
+    #       @spin.synchronize { @blocking.delete(current) }
+    #       return false
+    #     end
+    #   end
+    #
+    #   true
+    # end
 
     private def __lock(&) : Nil
       # try to acquire lock (without spin lock):
@@ -137,7 +142,7 @@ module Syn
         end
 
         @blocking.push(current)
-        yield
+        yield current
       end
 
       @spin.unlock
@@ -191,17 +196,17 @@ module Syn
 
     # Identical to `#synchronize` but aborts if the lock couldn't be acquired
     # until timeout is reached, in which case it returns false.
-    def synchronize(timeout : Time::Span, &) : Bool
-      if lock(timeout)
-        begin
-          yield
-        ensure
-          unlock
-        end
-        true
-      else
-        false
-      end
-    end
+    # def synchronize(timeout : Time::Span, &) : Bool
+    #   if lock(timeout)
+    #     begin
+    #       yield
+    #     ensure
+    #       unlock
+    #     end
+    #     true
+    #   else
+    #     false
+    #   end
+    # end
   end
 end
