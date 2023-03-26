@@ -5,11 +5,13 @@ require "../src/wait_group"
 describe Syn::Mutex do
   {% for type in %i[checked unchecked reentrant] %}
     describe {{type}} do
-      it "try_lock?" do
-        m = Mutex.new({{type}})
-        assert m.try_lock?
-        refute m.try_lock?
-      end
+      {% unless type == :reentrant %}
+        it "try_lock?" do
+          m = Mutex.new({{type}})
+          assert m.try_lock?
+          refute m.try_lock?
+        end
+      {% end %}
 
       it "lock" do
         state = Atomic.new(0)
@@ -136,6 +138,21 @@ describe Syn::Mutex do
   end
 
   describe "reentrant" do
+    it "try_lock?" do
+      m = Mutex.new(:reentrant)
+      assert m.try_lock?
+      assert m.try_lock?
+      m.unlock
+      m.unlock
+      assert_raises(Syn::Error) { m.unlock }
+    end
+
+    it "raises on the 255th re-lock (try_lock?)" do
+      m = Mutex.new(:reentrant)
+      255.times { m.lock }
+      assert_raises(Syn::Error) { m.try_lock? }
+    end
+
     it "re-locks" do
       m = Mutex.new(:reentrant)
       m.lock

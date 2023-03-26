@@ -67,20 +67,34 @@ module Syn
       @counter = 0_u8
     end
 
-    # Returns true if it acquired the lock, otherwise immediately returns false.
+    # Returns true if the lock could be acquired, otherwise immediately returns
+    # false without blocking.
     #
-    # Returns false even if the current fiber had previously acquired the lock,
-    # but won't cause a deadlock situation.
+    # Merely returns false whenever the lock if already held. Doesn't check if
+    # the current fiber currently holds the lock, doesn't raise and also doesn't
+    # increment the counter for reentrant mutexes (unless it's the initial
+    # lock).
     def try_lock? : Bool
+      # we're modifying @locked_by and @counter depending on @held which
+      # sounds unsafe _but_ the current fiber is holding the lock and
+      # checking for deadlock or reentrancy isn't an issue because the
+      # current fiber won't try to lock or unlock (it's busy setting the
+      # following ivars)
       if @held.test_and_set
         unless @type.unchecked?
           @locked_by = Fiber.current
           @counter += 1 if @type.reentrant?
         end
-        true
-      else
-        false
+        return true
       end
+
+      if @type.reentrant? && @locked_by == Fiber.current
+        prevent_reentrancy_overflow! {}
+        @counter += 1
+        return true
+      end
+
+      false
     end
 
     # Acquires the lock, suspending the current fiber until the lock can be
@@ -91,7 +105,7 @@ module Syn
     # raise an `Error`. If reentrant, the counter will be incremented and the
     # method will return.
     def lock : Nil
-      __lock { |_current| @spin.suspend }
+      __lock { |_| @spin.suspend }
     end
 
     # Identical to `#lock` but aborts if the lock couldn't be acquired until
@@ -128,24 +142,27 @@ module Syn
         unless @type.unchecked?
           if @locked_by == current
             if @type.reentrant?
-              if @counter == 255
-                @spin.unlock
-                raise Error.new("Can't re-lock reentrant mutex more than 255 times")
-              end
-              @counter += 1
-              @spin.unlock
-              return
+              return prevent_reentrancy_overflow! { @spin.unlock }
             end
+
             @spin.unlock
             raise Error.new("Can't re-lock mutex from the same fiber (deadlock)")
           end
         end
 
         @blocking.push(current)
+
         yield current
       end
 
       @spin.unlock
+    end
+
+    private def prevent_reentrancy_overflow!(&) : Nil
+      if @counter == 255
+        yield
+        raise Error.new("Can't re-lock reentrant mutex more than 255 times")
+      end
     end
 
     # Releases the lock.
@@ -160,6 +177,11 @@ module Syn
       # need thread exclusive access because we modify multiple values (@held,
       # @blocking, @locked_by, @counter)
       @spin.lock
+
+      # NOTE: we manually unlock the spinner _before_ each return/raise instead
+      #       of doing it once in an ensure block because we don't want to hold
+      #       the lock for longer than necessary. Raising an exception is a slow
+      #       and expensive operation, and it would ruin performance.
 
       unless @type.unchecked?
         if @locked_by.nil?
