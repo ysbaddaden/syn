@@ -10,7 +10,10 @@ struct Syn::Once
 
   def call(& : ->) : Nil
     first = Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :sequentially_consistent, false) == 0_u8
-    Atomic::Ops.fence(:sequentially_consistent, false)
+
+    {% unless flag?(:interpreted) %}
+      Atomic::Ops.fence(:sequentially_consistent, false)
+    {% end %}
 
     if first
       yield

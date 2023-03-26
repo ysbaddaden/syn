@@ -19,12 +19,16 @@ struct Syn::Flag
 
   def test_and_set : Bool
     test = Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :acquire, false) == 0_u8
-    Atomic::Ops.fence(:acquire, false)
+    {% unless flag?(:interpreted) %}
+      Atomic::Ops.fence(:acquire, false)
+    {% end %}
     test
   end
 
   def clear : Nil
-    Atomic::Ops.fence(:release, false)
+    {% unless flag?(:interpreted) %}
+      Atomic::Ops.fence(:release, false)
+    {% end %}
     Atomic::Ops.store(pointerof(@value), 0_u8, :release, true)
   end
 end
