@@ -19,8 +19,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
-
     steps:
       - uses: actions/checkout@v2
       - uses: crystal-lang/install-crystal@v1
@@ -29,8 +27,6 @@ jobs:
 
   test_mt:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
-
     steps:
       - uses: actions/checkout@v2
       - uses: crystal-lang/install-crystal@v1
