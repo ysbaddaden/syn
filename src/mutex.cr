@@ -1,4 +1,3 @@
-require "./lock"
 require "./spin_lock"
 require "./wait_list"
 
@@ -49,8 +48,6 @@ module Syn
       Unchecked
       Reentrant
     end
-
-    include Lock
 
     # warning: don't move these definitions to not change the struct size!
     @blocking : WaitList
@@ -105,26 +102,48 @@ module Syn
     # raise an `Error`. If reentrant, the counter will be incremented and the
     # method will return.
     def lock : Nil
-      __lock { |_| @spin.suspend }
+      __lock do |current|
+        @blocking.push(current)
+        @spin.suspend
+      end
     end
 
     # Identical to `#lock` but aborts if the lock couldn't be acquired until
     # timeout is reached, in which case it returns false (failed to acquire
     # lock). Returns true if the lock was acquired.
-    # def lock(timeout : Time::Span) : Bool
-    #   expires_at = Time.monotonic + timeout
-    #
-    #   __lock do |current|
-    #     # suspend for the remaining of the timeout (may be resumed earlier)
-    #     if reached_timeout = @spin.suspend(expires_at - Time.monotonic)
-    #       # early resume: must manually remove from blocking list
-    #       @spin.synchronize { @blocking.delete(current) }
-    #       return false
-    #     end
-    #   end
-    #
-    #   true
-    # end
+    def lock(timeout : Time::Span) : Bool
+      expires_at = Time.monotonic + timeout
+      reached_timeout = false
+
+      __lock do |current|
+        # suspend for the remaining of the timeout (may be resumed earlier)
+        #
+        # uses an atomic to declare that we're expecting a timeout (1) and to
+        # resolve a race condition where the timeout event would be handled in
+        # thread A while thread B dequeued the same fiber from @blocking and is
+        # about to resume it (only enqueue if the atomic is 0 or CAS 1 -> 2).
+        current.@__syn_timeout.set(1_u8)
+        Atomic::Ops.fence(:acquire, false)
+        @blocking.push(current)
+
+        @spin.suspend(expires_at - Time.monotonic)
+
+        _, success = current.@__syn_timeout.compare_and_set(1_u8, 2_u8)
+        if success
+          reached_timeout = true
+          @blocking.delete(current)
+        else
+          # another thread enqueued the current fiber
+          sleep
+        end
+
+        Atomic::Ops.fence(:release, false)
+        current.@__syn_timeout.set(0_u8)
+        break if reached_timeout
+      end
+
+      reached_timeout
+    end
 
     private def __lock(&) : Nil
       # try to acquire lock (without spin lock):
@@ -149,8 +168,6 @@ module Syn
             raise Error.new("Can't re-lock mutex from the same fiber (deadlock)")
           end
         end
-
-        @blocking.push(current)
 
         yield current
       end
@@ -207,28 +224,58 @@ module Syn
       # actual unlock
       @held.clear
 
-      # wakeup next blocking fiber (if any):
-      if fiber = @blocking.shift?
+      wakeup_next? do |fiber|
         @spin.unlock
         fiber.enqueue
-      else
-        @spin.unlock
+        return
       end
+
+      @spin.unlock
+    end
+
+    # Yields next blocking fiber (taking care of parallelism issues).
+    private def wakeup_next?(&) : Nil
+      while fiber = @blocking.shift?
+        if fiber.@__syn_timeout.get == 0_u8 ||
+            fiber.@__syn_timeout.compare_and_set(1_u8, 2_u8).last
+          yield fiber
+          break
+        end
+      end
+    end
+
+    # Releases the lock, suspends the current Fiber, then acquires the lock
+    # again when the fiber is resumed.
+    #
+    # The Fiber must be enqueued manually.
+    def suspend : Nil
+      unlock
+      ::sleep
+      lock
+    end
+
+    # Acquires the lock, yields, then releases the lock, even if the block
+    # raised an exception.
+    def synchronize(& : -> U) : U forall U
+      lock
+      yield
+    ensure
+      unlock
     end
 
     # Identical to `#synchronize` but aborts if the lock couldn't be acquired
     # until timeout is reached, in which case it returns false.
-    # def synchronize(timeout : Time::Span, &) : Bool
-    #   if lock(timeout)
-    #     begin
-    #       yield
-    #     ensure
-    #       unlock
-    #     end
-    #     true
-    #   else
-    #     false
-    #   end
-    # end
+    def synchronize(timeout : Time::Span, &) : Bool
+      if lock(timeout)
+        begin
+          yield
+        ensure
+          unlock
+        end
+        true
+      else
+        false
+      end
+    end
   end
 end

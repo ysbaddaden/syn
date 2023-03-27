@@ -1,4 +1,3 @@
-require "./lock"
 require "./flag"
 
 # :nodoc:
@@ -16,8 +15,6 @@ module Syn
   # The implementation is a NOOP unless you specify the `preview_mt` compile
   # flag.
   struct SpinLock
-    include Lock
-
     {% if flag?(:preview_mt) %}
       # :nodoc
       THRESHOLD = 100
@@ -51,5 +48,39 @@ module Syn
       def unlock : Nil
       end
     {% end %}
+
+    def suspend : Nil
+      unlock
+      ::sleep
+      lock
+    end
+
+    def suspend(timeout : Time::Span) : Nil
+      unlock
+      ::sleep(timeout)
+      lock
+    end
+
+    def synchronize(& : -> U) : U forall U
+      lock
+      yield
+    ensure
+      unlock
+    end
+
+    # Identical to `#synchronize` but aborts if the lock couldn't be acquired
+    # until timeout is reached, in which case it returns false.
+    # def synchronize(timeout : Time::Span, &) : Bool
+    #   if lock(timeout)
+    #     begin
+    #       yield
+    #     ensure
+    #       unlock
+    #     end
+    #     true
+    #   else
+    #     false
+    #   end
+    # end
   end
 end
