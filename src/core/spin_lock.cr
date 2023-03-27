@@ -5,7 +5,7 @@ lib LibC
   fun pthread_yield
 end
 
-module Syn
+module Syn::Core
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread
   # context switches that involve the kernel scheduler. Eventually fallsback to
   # a pause or yielding threads.

@@ -1,1 +1,2 @@
-require "./*"
+module Syn
+end

@@ -1,6 +1,6 @@
-require "./core_ext/fiber"
+require "../core_ext/fiber"
 
-module Syn
+module Syn::Core
   # Holds a singly linked list of pending `Fiber`. It is used to build all the
   # other concurrency objects. Implemented as a FIFO list. Assumes that a
   # `Fiber` can only ever be in a single `WaitList` at any given time, and will

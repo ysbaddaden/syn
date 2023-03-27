@@ -1,12 +1,12 @@
 require "./test_helper"
 require "../src/rw_lock"
-require "../src/wait_group"
+require "../src/core/wait_group"
 
 module Syn
   class RWLockTest < Minitest::Test
     def test_lifetime
       rw = RWLock.new
-      wg = WaitGroup.new(9)
+      wg = Core::WaitGroup.new(9)
 
       ary = [] of Int32
       counter = Atomic(Int64).new(0)

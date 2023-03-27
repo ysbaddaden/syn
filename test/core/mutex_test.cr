@@ -1,8 +1,8 @@
-require "./test_helper"
-require "../src/mutex"
-require "../src/wait_group"
+require "../test_helper"
+require "../../src/core/mutex"
+require "../../src/core/wait_group"
 
-describe Syn::Mutex do
+describe Syn::Core::Mutex do
   {% for type in %i[checked unchecked reentrant] %}
     describe {{type}} do
       {% unless type == :reentrant %}

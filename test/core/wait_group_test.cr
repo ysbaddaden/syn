@@ -1,7 +1,7 @@
-require "./test_helper"
-require "../src/wait_group"
+require "../test_helper"
+require "../../src/core/wait_group"
 
-module Syn
+module Syn::Core
   class WaitGroupTest < Minitest::Test
     def test_lifetime
       wg = WaitGroup.new

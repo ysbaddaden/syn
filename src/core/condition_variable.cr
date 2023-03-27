@@ -2,7 +2,7 @@ require "./spin_lock"
 require "./mutex"
 require "./wait_list"
 
-module Syn
+module Syn::Core
   # Synchronize execution of concurrently running fibers.
   #
   # This can be used to replace polling with a waiting list that can be resumed

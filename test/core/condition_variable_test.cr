@@ -1,8 +1,8 @@
-require "./test_helper"
-require "../src/mutex"
-require "../src/condition_variable"
+require "../test_helper"
+require "../../src/core/mutex"
+require "../../src/core/condition_variable"
 
-module Syn
+module Syn::Core
   class ConditionVariableTest < Minitest::Test
     def test_signal
       m = Mutex.new(:unchecked)

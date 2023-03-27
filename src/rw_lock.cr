@@ -1,96 +1,98 @@
-require "./mutex"
-require "./condition_variable"
+require "./core/mutex"
+require "./core/condition_variable"
 
-module Syn
-  # A many readers, mutually exclusive writer lock.
-  #
-  # Allows readers to run concurrently but ensures that they will never run
-  # concurrently to a writer. Writers are mutually exclusive to both readers
-  # and writers.
-  struct RWLock
-    def initialize
-      @mutex = Mutex.new(:unchecked)
-      @condition = ConditionVariable.new
-      @readers_count = 0
+# A many readers, mutually exclusive writer lock.
+#
+# Allows readers to run concurrently but ensures that they will never run
+# concurrently to a writer. Writers are mutually exclusive to both readers
+# and writers.
+class Syn::RWLock
+  @mutex : Core::Mutex
+  @condition_variable : Core::ConditionVariable
+  @readers_count : UInt32
+
+  def initialize
+    @mutex = Core::Mutex.new(:unchecked)
+    @condition_variable = Core::ConditionVariable.new
+    @readers_count = 0_u32
+  end
+
+  def lock_read : Nil
+    @mutex.synchronize do
+      @readers_count += 1
     end
+  end
 
-    def lock_read : Nil
-      @mutex.synchronize do
-        @readers_count += 1
+  # def lock_read(timeout : Time::Span) : Bool
+  #   @mutex.synchronize(timeout) do
+  #     @readers_count += 1
+  #   end
+  # end
+
+  def lock_read(&) : Nil
+    lock_read
+    yield
+  ensure
+    unlock_read
+  end
+
+  # def lock_read(timeout : Time::Span, &) : Nil
+  #   if lock_read(timeout)
+  #     begin
+  #       yield
+  #     ensure
+  #       unlock_read
+  #     end
+  #     true
+  #   else
+  #     false
+  #   end
+  # end
+
+  def unlock_read : Nil
+    @mutex.synchronize do
+      if (@readers_count -= 1) == 0
+        @condition_variable.signal
       end
     end
+  end
 
-    # def lock_read(timeout : Time::Span) : Bool
-    #   @mutex.synchronize(timeout) do
-    #     @readers_count += 1
-    #   end
-    # end
-
-    def lock_read(&) : Nil
-      lock_read
-      yield
-    ensure
-      unlock_read
+  def lock_write : Nil
+    @mutex.lock
+    until @readers_count == 0
+      @condition_variable.wait(pointerof(@mutex))
     end
+  end
 
-    # def lock_read(timeout : Time::Span, &) : Nil
-    #   if lock_read(timeout)
-    #     begin
-    #       yield
-    #     ensure
-    #       unlock_read
-    #     end
-    #     true
-    #   else
-    #     false
-    #   end
-    # end
+  # def lock_write(timeout : Time::Span) : Nil
+  #   @mutex.lock
+  #   until @readers_count == 0
+  #     @condition_variable.wait(pointerof(@mutex), timeout)
+  #   end
+  # end
 
-    def unlock_read : Nil
-      @mutex.synchronize do
-        if (@readers_count -= 1) == 0
-          @condition.signal
-        end
-      end
-    end
+  def lock_write(&) : Nil
+    lock_write
+    yield
+  ensure
+    unlock_write
+  end
 
-    def lock_write : Nil
-      @mutex.lock
-      until @readers_count == 0
-        @condition.wait(pointerof(@mutex))
-      end
-    end
+  # def lock_write(timeout : Time::Span, &) : Nil
+  #   if lock_write(timeout)
+  #     begin
+  #       yield
+  #     ensure
+  #       unlock_write
+  #     end
+  #     true
+  #   else
+  #     false
+  #   end
+  # end
 
-    # def lock_write(timeout : Time::Span) : Nil
-    #   @mutex.lock
-    #   until @readers_count == 0
-    #     @condition.wait(pointerof(@mutex), timeout)
-    #   end
-    # end
-
-    def lock_write(&) : Nil
-      lock_write
-      yield
-    ensure
-      unlock_write
-    end
-
-    # def lock_write(timeout : Time::Span, &) : Nil
-    #   if lock_write(timeout)
-    #     begin
-    #       yield
-    #     ensure
-    #       unlock_write
-    #     end
-    #     true
-    #   else
-    #     false
-    #   end
-    # end
-
-    def unlock_write : Nil
-      @condition.signal
-      @mutex.unlock
-    end
+  def unlock_write : Nil
+    @condition_variable.signal
+    @mutex.unlock
   end
 end

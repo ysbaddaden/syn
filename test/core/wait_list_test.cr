@@ -1,7 +1,7 @@
-require "./test_helper"
-require "../src/wait_list"
+require "../test_helper"
+require "../../src/core/wait_list"
 
-module Syn
+module Syn::Core
   class WaitListTest < Minitest::Test
     def test_initialize
       list = WaitList.new
