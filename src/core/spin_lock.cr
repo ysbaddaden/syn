@@ -16,7 +16,7 @@ module Syn::Core
   # flag.
   struct SpinLock
     {% if flag?(:preview_mt) %}
-      # :nodoc
+      # :nodoc:
       THRESHOLD = 100
 
       @flag = Flag.new
