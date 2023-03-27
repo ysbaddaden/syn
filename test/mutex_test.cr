@@ -36,6 +36,22 @@ describe Syn::Mutex do
         assert m.try_lock?
       end
 
+      {% unless type == :unchecked %}
+        it "raises on unlock when not locked" do
+          m = Mutex.new({{type}})
+          assert_raises(Syn::Error) { m.unlock }
+        end
+
+        it "raises when another fiber tries to unlock" do
+          m = Mutex.new(:reentrant)
+          m.lock
+
+          async do
+            assert_raises(Syn::Error) { m.unlock }
+          end
+        end
+      {% end %}
+
       it "synchronize" do
         m = Mutex.new({{type}})
         counter = 0
@@ -126,15 +142,6 @@ describe Syn::Mutex do
       m.lock
       assert_raises(Syn::Error) { m.lock }
     end
-
-    it "raises when another fiber unlocks" do
-      m = Mutex.new(:checked)
-      m.lock
-
-      async do
-        assert_raises(Syn::Error) { m.unlock }
-      end
-    end
   end
 
   describe "reentrant" do
@@ -142,9 +149,6 @@ describe Syn::Mutex do
       m = Mutex.new(:reentrant)
       assert m.try_lock?
       assert m.try_lock?
-      m.unlock
-      m.unlock
-      assert_raises(Syn::Error) { m.unlock }
     end
 
     it "raises on the 255th re-lock (try_lock?)" do
@@ -165,6 +169,15 @@ describe Syn::Mutex do
       assert_raises(Syn::Error) { m.lock }
     end
 
+    it "must unlock as many times as it try_lock?" do
+      m = Mutex.new(:reentrant)
+      m.try_lock?
+      m.try_lock?
+      m.unlock
+      m.unlock
+      assert_raises(Syn::Error) { m.unlock }
+    end
+
     it "must unlock as many times as it locked" do
       m = Mutex.new(:reentrant)
       m.lock
@@ -172,15 +185,6 @@ describe Syn::Mutex do
       m.unlock
       m.unlock
       assert_raises(Syn::Error) { m.unlock }
-    end
-
-    it "raises when another fiber unlocks" do
-      m = Mutex.new(:reentrant)
-      m.lock
-
-      async do
-        assert_raises(Syn::Error) { m.unlock }
-      end
     end
   end
 end
