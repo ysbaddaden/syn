@@ -1,3 +1,4 @@
+require "../syn"
 require "./spin_lock"
 require "./wait_list"
 require "../error"
@@ -115,33 +116,22 @@ module Syn::Core
       reached_timeout = false
 
       __lock do |current|
-        # suspend for the remaining of the timeout (may be resumed earlier)
-        #
-        # uses an atomic to declare that we're expecting a timeout (1) and to
-        # resolve a race condition where the timeout event would be handled in
-        # thread A while thread B dequeued the same fiber from @blocking and is
-        # about to resume it (only enqueue if the atomic is 0 or CAS 1 -> 2).
         Syn.timeout_acquire(current)
         @blocking.push(current)
         @spin.unlock
 
-        ::sleep(expires_at - Time.monotonic)
-
-        if Syn.timeout_cas?(current)
-          reached_timeout = true
-          @spin.lock
-          @blocking.delete(current)
-        else
-          # another thread enqueued the current fiber
-          sleep
-          @spin.lock
+        if Syn.sleep(current, expires_at - Time.monotonic)
+          reached timeout = true
+          @spin.synchronize { @blocking.delete(current) }
         end
-        Syn.timeout_release(current)
 
-        break if reached_timeout
+        Syn.timeout_release(current)
+        return false if reached_timeout
+
+        @spin.lock
       end
 
-      reached_timeout
+      true
     end
 
     private def __lock(&) : Nil
@@ -223,24 +213,16 @@ module Syn::Core
       # actual unlock
       @held.clear
 
-      wakeup_next? do |fiber|
-        @spin.unlock
-        fiber.enqueue
-        return
+      # wakeup pending fiber (if any)
+      while fiber = @blocking.shift?
+        if Syn.timeout_resumeable?(fiber)
+          @spin.unlock
+          fiber.enqueue
+          return
+        end
       end
 
       @spin.unlock
-    end
-
-    # Yields next blocking fiber (taking care of parallelism issues).
-    private def wakeup_next?(&) : Nil
-      while fiber = @blocking.shift?
-        if fiber.@__syn_timeout.get == 0_u8 ||
-            fiber.@__syn_timeout.compare_and_set(1_u8, 2_u8).last
-          yield fiber
-          break
-        end
-      end
     end
 
     # Acquires the lock, yields, then releases the lock, even if the block

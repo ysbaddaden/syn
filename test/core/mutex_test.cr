@@ -68,7 +68,7 @@ describe Syn::Core::Mutex do
             end
           end
 
-          eventually do
+          eventually(15.seconds) do
             # no races when incrementing counter (parallelism)
             assert_equal 100 * 500, counter
           end

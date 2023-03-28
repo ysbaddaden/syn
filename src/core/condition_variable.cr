@@ -1,3 +1,4 @@
+require "../syn"
 require "./spin_lock"
 require "./mutex"
 require "./wait_list"
@@ -29,35 +30,32 @@ module Syn::Core
     # Identical to `#wait` but the current fiber will be resumed automatically
     # when `timeout` is reached. Returns `true` if the timeout was reached,
     # `false` otherwise.
-    def wait(mutex : Pointer(Mutex), timeout : Time::Span) : Bool
-      reached_timeout = false
+    def wait(mutex : Pointer(Mutex), timeout : Time::Span, *, relock_on_timeout : Bool = true) : Bool
       current = Fiber.current
 
       Syn.timeout_acquire(current)
       @spin.synchronize { @waiting.push(current) }
       mutex.value.unlock
 
-      ::sleep(timeout)
-
-      if Syn.timeout_cas?(current)
-        reached_timeout = true
+      if reached_timeout = Syn.sleep(current, timeout)
         @spin.synchronize { @waiting.delete(current) }
-      else
-        # another thread enqueued the current fiber
-        ::sleep
       end
-
       Syn.timeout_release(current)
-      mutex.value.lock
 
+      if !reached_timeout || relock_on_timeout
+        mutex.value.lock
+      end
       reached_timeout
     end
 
     # Enqueues one waiting fiber. Does nothing if there aren't any waiting
     # fiber.
     def signal : Nil
-      if fiber = @spin.synchronize { @waiting.shift? }
-        fiber.enqueue
+      while fiber = @spin.synchronize { @waiting.shift? }
+        if Syn.timeout_resumeable?(fiber)
+          fiber.enqueue
+          return
+        end
       end
     end
 
@@ -65,7 +63,11 @@ module Syn::Core
     # waiting fiber.
     def broadcast : Nil
       @spin.synchronize do
-        @waiting.each(&.enqueue)
+        @waiting.each do |fiber|
+          if Syn.timeout_resumeable?(fiber)
+            fiber.enqueue
+          end
+        end
         @waiting.clear
       end
     end

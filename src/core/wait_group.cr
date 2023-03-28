@@ -44,8 +44,10 @@ module Syn::Core
     # if the counter reached zero; returns `false` if timeout was reached.
     def wait(timeout : Time::Span) : Bool
       __wait do
-        return @condition.wait(pointerof(@mutex), timeout)
+        timeout_reached = @condition.wait(pointerof(@mutex), timeout)
+        return false if timeout_reached
       end
+      true
     end
 
     private def __wait(&) : Nil
