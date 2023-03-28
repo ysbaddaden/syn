@@ -33,6 +33,11 @@ class Fiber
   # Atomic to know whether the fiber has been suspended with a timeout, and also
   # resolve on MT who shall wakeup the fiber since the timeout may run in
   # parallel to another thread trying to enqueue the fiber.
+  #
+  # 0_u8: no timeout (default)
+  # 1_u8: set when expecting timeout
+  # 2_u8: the fiber that can cmpxchg from 1 to 2 executes the operation (timed
+  # out or enqueue)
   @__syn_timeout = Atomic(UInt8).new(0_u8)
 
   # :nodoc:

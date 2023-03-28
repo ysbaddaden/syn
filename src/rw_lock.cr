@@ -6,6 +6,8 @@ require "./core/condition_variable"
 # Allows readers to run concurrently but ensures that they will never run
 # concurrently to a writer. Writers are mutually exclusive to both readers
 # and writers.
+#
+# FIXME: untested
 class Syn::RWLock
   @mutex : Core::Mutex
   @condition_variable : Core::ConditionVariable
@@ -23,11 +25,11 @@ class Syn::RWLock
     end
   end
 
-  # def lock_read(timeout : Time::Span) : Bool
-  #   @mutex.synchronize(timeout) do
-  #     @readers_count += 1
-  #   end
-  # end
+  def lock_read(timeout : Time::Span) : Bool
+    @mutex.synchronize(timeout) do
+      @readers_count += 1
+    end
+  end
 
   def lock_read(&) : Nil
     lock_read
@@ -36,18 +38,18 @@ class Syn::RWLock
     unlock_read
   end
 
-  # def lock_read(timeout : Time::Span, &) : Nil
-  #   if lock_read(timeout)
-  #     begin
-  #       yield
-  #     ensure
-  #       unlock_read
-  #     end
-  #     true
-  #   else
-  #     false
-  #   end
-  # end
+  def lock_read(timeout : Time::Span, &) : Bool
+    if lock_read(timeout)
+      begin
+        yield
+      ensure
+        unlock_read
+      end
+      true
+    else
+      false
+    end
+  end
 
   def unlock_read : Nil
     @mutex.synchronize do
@@ -64,12 +66,12 @@ class Syn::RWLock
     end
   end
 
-  # def lock_write(timeout : Time::Span) : Nil
-  #   @mutex.lock
-  #   until @readers_count == 0
-  #     @condition_variable.wait(pointerof(@mutex), timeout)
-  #   end
-  # end
+  def lock_write(timeout : Time::Span) : Bool
+    @mutex.lock
+    until @readers_count == 0
+      @condition_variable.wait(pointerof(@mutex), timeout)
+    end
+  end
 
   def lock_write(&) : Nil
     lock_write
@@ -78,18 +80,18 @@ class Syn::RWLock
     unlock_write
   end
 
-  # def lock_write(timeout : Time::Span, &) : Nil
-  #   if lock_write(timeout)
-  #     begin
-  #       yield
-  #     ensure
-  #       unlock_write
-  #     end
-  #     true
-  #   else
-  #     false
-  #   end
-  # end
+  def lock_write(timeout : Time::Span, &) : Bool
+    if lock_write(timeout)
+      begin
+        yield
+      ensure
+        unlock_write
+      end
+      true
+    else
+      false
+    end
+  end
 
   def unlock_write : Nil
     @condition_variable.signal

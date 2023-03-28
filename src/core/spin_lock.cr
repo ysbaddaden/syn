@@ -1,19 +1,17 @@
 require "./flag"
 
-# :nodoc:
-lib LibC
-  fun pthread_yield
-end
-
 module Syn::Core
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread
-  # context switches that involve the kernel scheduler. Eventually fallsback to
-  # a pause or yielding threads.
+  # context switches that involve the kernel scheduler but eventually fallback
+  # to yielding to another thread, to avoid spinning (and thus burning) a CPU
+  # that would be counter-productive (scheduler may believe the thread is doing
+  # some heavy computation and delay it's suspension).
   #
   # This is a public alternative to the private Crystal::SpinLock in stdlib.
+  # That beind said, you're not supposed to ever need it.
   #
-  # The implementation is a NOOP unless you specify the `preview_mt` compile
-  # flag.
+  # The implementation is a NOOP until the program has enabling MT during
+  # compilation (i.e. `-Dpreview_mt` flag).
   struct SpinLock
     {% if flag?(:preview_mt) %}
       # :nodoc:
@@ -22,19 +20,15 @@ module Syn::Core
       @flag = Flag.new
 
       def lock : Nil
-        # fast path
-        return if @flag.test_and_set
-
-        # fixed busy loop to avoid a context switch:
-        count = THRESHOLD
-        until (count -= 1) == 0
-          return if @flag.test_and_set
-        end
-
-        # blocking loop
         until @flag.test_and_set
-          LibC.pthread_yield
-          # Intrinsics.pause
+          # fixed busy loop to avoid a context switch:
+          count = THRESHOLD
+          until (count -= 1) == 0
+            return if @flag.test_and_set
+          end
+
+          # fallback to thread context switch (slow path):
+          Thread.yield
         end
       end
 
@@ -49,38 +43,16 @@ module Syn::Core
       end
     {% end %}
 
-    def suspend : Nil
-      unlock
-      ::sleep
-      lock
-    end
-
-    def suspend(timeout : Time::Span) : Nil
-      unlock
-      ::sleep(timeout)
-      lock
-    end
-
+    # Locks, yields and unlocks.
+    #
+    # NOTE: make sure that the block doesn't execute anything more than
+    # necessary, since concurrent threads will be blocked for its whole
+    # duration!
     def synchronize(& : -> U) : U forall U
       lock
       yield
     ensure
       unlock
     end
-
-    # Identical to `#synchronize` but aborts if the lock couldn't be acquired
-    # until timeout is reached, in which case it returns false.
-    # def synchronize(timeout : Time::Span, &) : Bool
-    #   if lock(timeout)
-    #     begin
-    #       yield
-    #     ensure
-    #       unlock
-    #     end
-    #     true
-    #   else
-    #     false
-    #   end
-    # end
   end
 end

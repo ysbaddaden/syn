@@ -101,7 +101,9 @@ module Syn::Core
     def lock : Nil
       __lock do |current|
         @blocking.push(current)
-        @spin.suspend
+        @spin.unlock
+        ::sleep
+        @spin.lock
       end
     end
 
@@ -119,23 +121,23 @@ module Syn::Core
         # resolve a race condition where the timeout event would be handled in
         # thread A while thread B dequeued the same fiber from @blocking and is
         # about to resume it (only enqueue if the atomic is 0 or CAS 1 -> 2).
-        current.@__syn_timeout.set(1_u8)
-        Atomic::Ops.fence(:acquire, false)
+        Syn.timeout_acquire(current)
         @blocking.push(current)
+        @spin.unlock
 
-        @spin.suspend(expires_at - Time.monotonic)
+        ::sleep(expires_at - Time.monotonic)
 
-        _, success = current.@__syn_timeout.compare_and_set(1_u8, 2_u8)
-        if success
+        if Syn.timeout_cas?(current)
           reached_timeout = true
+          @spin.lock
           @blocking.delete(current)
         else
           # another thread enqueued the current fiber
           sleep
+          @spin.lock
         end
+        Syn.timeout_release(current)
 
-        Atomic::Ops.fence(:release, false)
-        current.@__syn_timeout.set(0_u8)
         break if reached_timeout
       end
 
@@ -239,16 +241,6 @@ module Syn::Core
           break
         end
       end
-    end
-
-    # Releases the lock, suspends the current Fiber, then acquires the lock
-    # again when the fiber is resumed.
-    #
-    # The Fiber must be enqueued manually.
-    def suspend : Nil
-      unlock
-      ::sleep
-      lock
     end
 
     # Acquires the lock, yields, then releases the lock, even if the block

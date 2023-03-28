@@ -21,23 +21,37 @@ module Syn::Core
     def wait(mutex : Pointer(Mutex)) : Nil
       current = Fiber.current
       @spin.synchronize { @waiting.push(current) }
-      mutex.value.suspend
+      mutex.value.unlock
+      ::sleep
+      mutex.value.lock
     end
 
     # Identical to `#wait` but the current fiber will be resumed automatically
     # when `timeout` is reached. Returns `true` if the timeout was reached,
     # `false` otherwise.
-    # def wait(mutex : Pointer(Mutex), timeout : Time::Span) : Bool
-    #   current = Fiber.current
-    #   @spin.synchronize { @waiting.push(current) }
-    #
-    #   if timeout_reached = mutex.value.suspend(timeout)
-    #     # early resume: must manually remove from waiting list
-    #     @spin.synchronize { @waiting.delete(current) }
-    #   end
-    #
-    #   timeout_reached
-    # end
+    def wait(mutex : Pointer(Mutex), timeout : Time::Span) : Bool
+      reached_timeout = false
+      current = Fiber.current
+
+      Syn.timeout_acquire(current)
+      @spin.synchronize { @waiting.push(current) }
+      mutex.value.unlock
+
+      ::sleep(timeout)
+
+      if Syn.timeout_cas?(current)
+        reached_timeout = true
+        @spin.synchronize { @waiting.delete(current) }
+      else
+        # another thread enqueued the current fiber
+        ::sleep
+      end
+
+      Syn.timeout_release(current)
+      mutex.value.lock
+
+      reached_timeout
+    end
 
     # Enqueues one waiting fiber. Does nothing if there aren't any waiting
     # fiber.

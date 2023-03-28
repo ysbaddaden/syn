@@ -82,30 +82,6 @@ describe Syn::Core::Mutex do
           tmp.try(&.delete)
         end
       end
-
-      it "suspend" do
-        m = Mutex.new({{type}})
-        state = Atomic.new(0)
-
-        fiber = ::spawn do
-          m.lock
-
-          state.set(1)
-          m.suspend
-          state.set(2)
-        end
-
-        eventually { assert_equal 1, state.get }
-
-        # it released the lock before suspending:
-        eventually { assert m.try_lock? }
-        m.unlock
-
-        # it grabbed the lock on resume:
-        fiber.enqueue
-        eventually { assert_equal 2, state.get }
-        refute m.try_lock?
-      end
     end
   {% end %}
 

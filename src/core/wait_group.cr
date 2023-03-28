@@ -42,11 +42,11 @@ module Syn::Core
 
     # Same as `#wait` but only waits until `timeout` is reached. Returns `true`
     # if the counter reached zero; returns `false` if timeout was reached.
-    # def wait(timeout : Time::Span) : Bool
-    #   __wait do
-    #     return @condition.wait(pointerof(@mutex), timeout)
-    #   end
-    # end
+    def wait(timeout : Time::Span) : Bool
+      __wait do
+        return @condition.wait(pointerof(@mutex), timeout)
+      end
+    end
 
     private def __wait(&) : Nil
       @mutex.synchronize do
