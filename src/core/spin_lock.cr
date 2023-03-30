@@ -1,4 +1,4 @@
-require "./flag"
+require "./atomic_lock"
 
 module Syn::Core
   # Tries to acquire an atomic lock by spining, trying to avoid slow thread
@@ -17,14 +17,14 @@ module Syn::Core
       # :nodoc:
       THRESHOLD = 100
 
-      @flag = Flag.new
+      @lock = AtomicLock.new
 
       def lock : Nil
-        until @flag.test_and_set
+        until @lock.acquire?
           # fixed busy loop to avoid a context switch:
           count = THRESHOLD
           until (count -= 1) == 0
-            return if @flag.test_and_set
+            return if @lock.acquire?
           end
 
           # fallback to thread context switch (slow path):
@@ -33,7 +33,7 @@ module Syn::Core
       end
 
       def unlock : Nil
-        @flag.clear
+        @lock.release
       end
     {% else %}
       def lock : Nil

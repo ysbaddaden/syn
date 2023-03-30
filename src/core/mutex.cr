@@ -50,13 +50,13 @@ module Syn::Core
     # warning: don't move these definitions to not change the struct size!
     @blocking : WaitList
     @locked_by : Fiber?
-    @held : Flag
+    @held : AtomicLock
     @spin : SpinLock
     @type : Type
     @counter : UInt8
 
     def initialize(@type : Type = :checked)
-      @held = Flag.new
+      @held = AtomicLock.new
       @spin = SpinLock.new
       @blocking = WaitList.new
       @counter = 0_u8
@@ -75,7 +75,7 @@ module Syn::Core
       # checking for deadlock or reentrancy isn't an issue because the
       # current fiber won't try to lock or unlock (it's busy setting the
       # following ivars)
-      if @held.test_and_set
+      if @held.acquire?
         unless @type.unchecked?
           @locked_by = Fiber.current
           @counter += 1 if @type.reentrant?
@@ -211,7 +211,7 @@ module Syn::Core
       end
 
       # actual unlock
-      @held.clear
+      @held.release
 
       # wakeup pending fiber (if any)
       while fiber = @blocking.shift?

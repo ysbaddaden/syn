@@ -46,9 +46,14 @@ results = [] of Int32
 end
 ```
 
-### `Syn::Condition`
+### `Syn::ConditionVariable`
 
-Both a Mutex _and_ a Condition Variable in a single type.
+Add communication to synchronize mutually exclusive blocks of code. The mutex
+will be unlocked while waiting for a notification and locked again before
+returning. Any time, a concurrent fiber can signal the condition variable to
+wake up one fiber, or broadcast to wake up all of them.
+
+TODO: write an example.
 
 ### `Syn::WaitGroup`
 
@@ -85,6 +90,32 @@ This type is biased upon reads (many fibers can read) while writing will still
 block everything (only one fiber can write). It should be preferred over a mutex
 when writes happen sporadically.
 
+TODO: write an example.
+
+### `Syn::Pool(T)`
+
+A shared pool of T with a maximum capacity. Trying to checkout when the pool is
+empty will create a new T up to capacity, then block until a T is available for
+checkout again or until the timeout is reached, in which case
+`Syn::TimeoutError` will be raised.
+
+NOTE: once created the instances of T will be kept forever; each instance of T
+is expected to self repair.
+
+Example:
+
+```crystal
+pool = Pool(Conn).new(capacity: 5) { Conn.new }
+
+5.times do
+  ::spawn do
+    pool.using do |conn|
+      do_something(conn)
+    end
+  end
+end
+```
+
 
 ## `Syn::Core` namespace
 
@@ -98,9 +129,9 @@ unsafe to pass around (structs are passed by value, i.e. duplicated), and you
 must make sure to always pass them by reference (i.e. pointers) or to always
 access them directly as pure local or instance variables.
 
-- `Syn::Core::Flag` is an alternative to `Atomic::Flag` that uses the `:acquire`
-  and `:release` memory ordering + fences (memory barriers) to prevent code
-  reordering at runtime by weak CPUs.
+- `Syn::Core::AtomicLock` is an alternative to `Atomic::Flag` that uses the
+  `:acquire` and `:release` memory ordering + fences (memory barriers) to
+  prevent code reordering at runtime by weak CPUs.
 
 - `Syn::Core::Once` ensures that a block of code will only ever run once.
 

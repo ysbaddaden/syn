@@ -8,7 +8,7 @@ class Syn::PoolTest < Minitest::Test
 
   def test_doesnt_start_any_by_default
     counter = Atomic.new(0)
-    pool = Pool(Foo).new do
+    Pool(Foo).new do
       counter.add(1)
       Foo.new
     end
@@ -100,5 +100,17 @@ class Syn::PoolTest < Minitest::Test
 
     wg.wait(2.seconds)
     assert_equal 3, counter.get
+  end
+
+  def test_using_yields_an_instance
+    pool = Pool.new(capacity: 3) { Foo.new }
+    done = false
+
+    pool.using do |foo|
+      assert_instance_of Foo, foo
+      done = true
+    end
+
+    assert done, "expected block to have been called"
   end
 end
