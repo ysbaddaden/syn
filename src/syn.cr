@@ -1,6 +1,6 @@
 module Syn
   # OPTIMIZE: consider using Atomic::Ops directly to specify acquire/release
-  #           memory ordering instead of sequentially consistent
+  #           memory ordering instead of sequentially consistent (?)
 
   # :nodoc:
   @[AlwaysInline]

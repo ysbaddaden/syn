@@ -15,6 +15,7 @@ class Syn::Mutex
     @mutex.lock
   end
 
+  # NOTE: the timeout feature is experimental.
   def lock(timeout : Time::Span) : Bool
     @mutex.lock(timeout)
   end
@@ -27,6 +28,7 @@ class Syn::Mutex
     @mutex.synchronize { yield }
   end
 
+  # NOTE: the timeout feature is experimental.
   def synchronize(timeout : Time::Span, & : ->) : Bool
     @mutex.synchronize(timeout) { yield }
   end

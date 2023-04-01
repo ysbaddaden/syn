@@ -30,6 +30,8 @@ module Syn::Core
     # Identical to `#wait` but the current fiber will be resumed automatically
     # when `timeout` is reached. Returns `true` if the timeout was reached,
     # `false` otherwise.
+    #
+    # NOTE: the timeout feature is experimental.
     def wait(mutex : Pointer(Mutex), timeout : Time::Span, *, relock_on_timeout : Bool = true) : Bool
       current = Fiber.current
 

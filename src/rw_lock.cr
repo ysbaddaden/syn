@@ -25,6 +25,7 @@ class Syn::RWLock
     end
   end
 
+  # NOTE: the timeout feature is experimental.
   def lock_read(timeout : Time::Span) : Bool
     @mutex.synchronize(timeout) do
       @readers_count += 1
@@ -38,6 +39,7 @@ class Syn::RWLock
     unlock_read
   end
 
+  # NOTE: the timeout feature is experimental.
   def lock_read(timeout : Time::Span, &) : Bool
     if lock_read(timeout)
       begin
@@ -66,6 +68,7 @@ class Syn::RWLock
     end
   end
 
+  # NOTE: the timeout feature is experimental.
   def lock_write(timeout : Time::Span) : Bool
     @mutex.lock
     until @readers_count == 0
@@ -80,6 +83,7 @@ class Syn::RWLock
     unlock_write
   end
 
+  # NOTE: the timeout feature is experimental.
   def lock_write(timeout : Time::Span, &) : Bool
     if lock_write(timeout)
       begin

@@ -1,6 +1,7 @@
 require "./core/mutex"
 require "./core/condition_variable"
 
+# NOTE: relies on the experimental timeout feature.
 class Syn::Pool(T)
   # getter capacity : Int32
   # getter size : Int32

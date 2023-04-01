@@ -111,6 +111,8 @@ module Syn::Core
     # Identical to `#lock` but aborts if the lock couldn't be acquired until
     # timeout is reached, in which case it returns false (failed to acquire
     # lock). Returns true if the lock was acquired.
+    #
+    # NOTE: the timeout feature is experimental.
     def lock(timeout : Time::Span) : Bool
       expires_at = Time.monotonic + timeout
       reached_timeout = false
@@ -237,6 +239,7 @@ module Syn::Core
     # Identical to `#synchronize` but aborts if the lock couldn't be acquired
     # until timeout is reached, in which case it returns false.
     #
+    # NOTE: the timeout feature is experimental.
     # NOTE: unlike `#synchronize` it doesn't return the block's value!
     def synchronize(timeout : Time::Span, &) : Bool
       if lock(timeout)

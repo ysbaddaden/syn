@@ -19,6 +19,7 @@ class Syn::WaitGroup
     @wg.wait
   end
 
+  # NOTE: the timeout feature is experimental.
   def wait(timeout : Time::Span) : Bool
     @wg.wait(timeout)
   end

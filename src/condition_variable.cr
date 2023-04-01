@@ -11,6 +11,7 @@ class Syn::ConditionVariable
     @condition_variable.wait(pointerof(mutex.@mutex))
   end
 
+  # NOTE: the timeout feature is experimental.
   def wait(mutex : Mutex, timeout : Time::Span) : Bool
     @condition_variable.wait(pointerof(mutex.@mutex), timeout)
   end
