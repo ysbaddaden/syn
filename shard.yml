@@ -12,7 +12,4 @@ development_dependencies:
   minitest:
     github: ysbaddaden/minitest.cr
 
-  timecop:
-    github: crystal-community/timecop.cr
-
 license: Apache-2.0
