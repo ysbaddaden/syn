@@ -3,6 +3,10 @@
 Synchronization primitives to build concurrent and parallel-safe data structures
 in Crystal.
 
+## Status
+
+Syn is an experimental library. I aim to make it correct, but I can't state that
+it is, especially on all architectures (e.g. AARCH64) yet.
 
 ## `Syn` namespace
 
@@ -53,7 +57,7 @@ will be unlocked while waiting for a notification and locked again before
 returning. Any time, a concurrent fiber can signal the condition variable to
 wake up one fiber, or broadcast to wake up all of them.
 
-TODO: write an example.
+<!-- TODO: write an example. -->
 
 ### `Syn::WaitGroup`
 
@@ -92,6 +96,24 @@ when writes happen sporadically.
 
 TODO: write an example.
 
+### `Syn::Future(T)`
+
+An object that will eventually hold a value.
+
+Example:
+
+```crystal
+value = Syn::Future(Foo).new
+
+spawn do
+  value.set(calculate_foo)
+end
+
+# blocks until the future is resolved
+value.get
+```
+
+<!--
 ### `Syn::Pool(T)`
 
 A shared pool of T with a maximum capacity. Trying to checkout when the pool is
@@ -115,6 +137,7 @@ pool = Pool(Conn).new(capacity: 5) { Conn.new }
   end
 end
 ```
+-->
 
 
 ## `Syn::Core` namespace
@@ -139,7 +162,8 @@ access them directly as pure local or instance variables.
   checked and reentrant protection.
 
 - `Syn::Core::ConditionVariable` to synchronize the execution of multiple fibers
-  through a mutex (a regular condition variable).
+  through a lockable (a regular condition variable) or without a lockable (a
+  notification system).
 
 - `Syn::Core::WaitGroup` to wait until a set of fibers have terminated.
 
@@ -158,4 +182,4 @@ The following types are the fundational types of the above core types:
 
 ## License
 
-Distributed under the Apache-2.0 license.
+Distributed under the Apache-2.0 license. Use at your own risk.
