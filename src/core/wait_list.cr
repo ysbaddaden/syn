@@ -43,6 +43,28 @@ module Syn::Core
       end
     end
 
+    struct Iterator
+      def initialize(@head : Fiber?)
+      end
+
+      def each(& : Fiber ->) : Nil
+        fiber = @head
+
+        while fiber
+          next_fiber = fiber.@__syn_next
+          Atomic::Ops.fence(:sequentially_consistent, false) # needed ?!
+
+          yield fiber
+
+          fiber = next_fiber
+        end
+      end
+    end
+
+    def each : Iterator?
+      Iterator.new(@head)
+    end
+
     def delete(fiber : Fiber) : Nil
       prev, curr = nil, @head
 

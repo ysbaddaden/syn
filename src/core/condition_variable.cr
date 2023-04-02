@@ -68,13 +68,12 @@ module Syn::Core
     # Enqueues all waiting fibers at once. Does nothing if there aren't any
     # waiting fiber.
     def broadcast : Nil
-      @spin.synchronize do
-        @waiting.each do |fiber|
-          if Syn.timeout_resumeable?(fiber)
-            fiber.enqueue
-          end
-        end
-        @waiting.clear
+      iterator = @spin.synchronize do
+        @waiting.each.tap { @waiting.clear }
+      end
+
+      iterator.each do |fiber|
+        fiber.enqueue if Syn.timeout_resumeable?(fiber)
       end
     end
   end
