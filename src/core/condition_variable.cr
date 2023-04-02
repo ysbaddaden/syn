@@ -1,6 +1,6 @@
 require "../syn"
+require "./lockable"
 require "./spin_lock"
-require "./mutex"
 require "./wait_list"
 
 module Syn::Core
@@ -8,23 +8,27 @@ module Syn::Core
   #
   # This can be used to replace polling with a waiting list that can be resumed
   # when resources are available, while still behaving inside a mutually
-  # exclusive context: when a waiting fiber is resumed, the mutex will be
+  # exclusive context: when a waiting fiber is resumed, the lockable will be
   # locked.
+  #
+  # Can also be used as a notification system without a lockable. In which case
+  # the lockable must be `nil` (or `Pointer(Syn::Lockable).null`) and the
+  # lockable won't be unlocked nor locked.
   struct ConditionVariable
     def initialize
       @spin = SpinLock.new
       @waiting = WaitList.new
     end
 
-    # Suspends the current fiber. The mutex is unlocked before the fiber is
+    # Suspends the current fiber. The lockable is unlocked before the fiber is
     # suspended (the current fiber must be holding the lock) and will be locked
     # again after the fiber is resumed and before the function returns.
-    def wait(mutex : Pointer(Mutex)) : Nil
+    def wait(lockable : Pointer(Lockable)?) : Nil
       current = Fiber.current
       @spin.synchronize { @waiting.push(current) }
-      mutex.value.unlock
+      lockable.try(&.value.unlock)
       ::sleep
-      mutex.value.lock
+      lockable.try(&.value.lock)
     end
 
     # Identical to `#wait` but the current fiber will be resumed automatically
@@ -32,12 +36,12 @@ module Syn::Core
     # `false` otherwise.
     #
     # NOTE: the timeout feature is experimental.
-    def wait(mutex : Pointer(Mutex), timeout : Time::Span, *, relock_on_timeout : Bool = true) : Bool
+    def wait(lockable : Pointer(Lockable)?, timeout : Time::Span, *, relock_on_timeout : Bool = true) : Bool
       current = Fiber.current
 
       Syn.timeout_acquire(current)
       @spin.synchronize { @waiting.push(current) }
-      mutex.value.unlock
+      lockable.try(&.value.unlock)
 
       if reached_timeout = Syn.sleep(current, timeout)
         @spin.synchronize { @waiting.delete(current) }
@@ -45,7 +49,7 @@ module Syn::Core
       Syn.timeout_release(current)
 
       if !reached_timeout || relock_on_timeout
-        mutex.value.lock
+        lockable.try(&.value.lock)
       end
       reached_timeout
     end

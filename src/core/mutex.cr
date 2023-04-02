@@ -1,7 +1,9 @@
 require "../syn"
+require "../error"
+require "./atomic_lock"
+require "./lockable"
 require "./spin_lock"
 require "./wait_list"
-require "../error"
 
 module Syn::Core
   # A Fiber aware, mutually exclusive lock.
@@ -41,6 +43,8 @@ module Syn::Core
   #
   # TODO: check whether the owning fiber is still alive or not (i.e. EOWNERDEAD)
   struct Mutex
+    include Lockable
+
     enum Type : UInt8
       Checked
       Unchecked
@@ -176,20 +180,23 @@ module Syn::Core
     # Releases the lock.
     #
     # If unchecked, any fiber can unlock the mutex and the mutex doesn't even
-    # need to be locked. If checked or reentrant, the mutex must be locked and
-    # only the fiber holding the lock is allowed otherwise `Error` exceptions
-    # will raised. If reentrant the counter will be decremented and the lock
-    # only released when the counter reaches zero (i.e. you must call `#unlock`
-    # as many times as `#lock` was called.
+    # need to be locked.
+    #
+    # If checked or reentrant, the mutex must have been locked and only the
+    # fiber holding the lock is allowed otherwise `Error` exceptions will be
+    # raised. If reentrant the counter will be decremented and the lock only
+    # released when the counter reaches zero (i.e. you must call `#unlock` as
+    # many times as `#lock` was called.
     def unlock : Nil
       # need thread exclusive access because we modify multiple values (@held,
       # @blocking, @locked_by, @counter)
       @spin.lock
 
-      # NOTE: we manually unlock the spinner _before_ each return/raise instead
-      #       of doing it once in an ensure block because we don't want to hold
-      #       the lock for longer than necessary. Raising an exception is a slow
-      #       and expensive operation, and it would ruin performance.
+      # we manually unlock the spinner _before_ each return/raise instead of
+      # doing it once in an ensure block because we don't want to hold the lock
+      # for longer than necessary. Raising an exception is a slow and expensive
+      # operation, while the spin lock blocks all threads, which would result in
+      # ruining the overall performance of the application.
 
       unless @type.unchecked?
         if @locked_by.nil?
