@@ -31,8 +31,7 @@ module Syn
 
     # Blocks the current fiber until the value is resolved or timeout is
     # reached, in which case it returns `nil`.
-    #
-    # NOTE: the timeout feature is experimental.
+    @[Experimental("The timeout feature is experimental.")]
     def get(timeout : Time::Span) : T?
       @future.get(timeout)
     end

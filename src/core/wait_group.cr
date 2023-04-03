@@ -42,8 +42,7 @@ module Syn::Core
 
     # Same as `#wait` but only waits until `timeout` is reached. Returns `true`
     # if the counter reached zero; returns `false` if timeout was reached.
-    #
-    # NOTE: the timeout feature is experimental.
+    @[Experimental("The timeout feature is experimental.")]
     def wait(timeout : Time::Span) : Bool
       __wait do
         timeout_reached = @condition.wait(pointerof(@mutex), timeout)
