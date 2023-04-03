@@ -40,20 +40,52 @@ class Syn::FutureTest < Minitest::Test
     assert_equal 789, value.get
   end
 
-  def test_get_timeout
-    ready = WaitGroup.new(100)
-    counter = Atomic.new(0)
+  def test_get_timeout_returns_nil
+    value = Future(Int32).new
+    assert_nil value.get(1.millisecond)
+  end
+
+  def test_get_timeout_returns_value
+    value = Future(Int32).new
+    value.set(12345)
+    assert_equal 12345, value.get(1.millisecond)
+  end
+
+  def test_get_timeout_eventually_returns_value
+    ready = WaitGroup.new(1)
+    done = false
 
     value = Future(Int32).new
-    assert_nil value.get(1.milliseconds)
-
     result = nil
+
+    ::spawn do
+      ready.done
+      result = value.get(1.second)
+      done = true
+    end
+
+    ::spawn do
+      ready.wait
+      value.set(980)
+    end
+
+    eventually { assert done }
+    assert_equal 980, result
+  end
+
+  def test_get_timeout_concurrency
+    ready = WaitGroup.new(100)
+    wg = WaitGroup.new(100)
+
+    value = Future(Int32).new
+    counter = Atomic.new(0)
 
     100.times do
       ::spawn do
         ready.done
-        result = value.get(10.milliseconds)
-        counter.add(1)
+        assert rs = value.get(1.second)
+        counter.add(rs.not_nil!)
+        wg.done
       end
     end
 
@@ -62,8 +94,7 @@ class Syn::FutureTest < Minitest::Test
       value.set(980)
     end
 
-    eventually(1.seconds) { assert_equal 980, result }
-
-    assert_equal 980, value.get(1.milliseconds)
+    wg.wait
+    eventually { assert_equal 98_000, counter.get }
   end
 end
