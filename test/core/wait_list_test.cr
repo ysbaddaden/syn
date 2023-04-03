@@ -190,5 +190,34 @@ module Syn::Core
       assert_equal c, a.@__syn_next
       assert_equal c, list.@tail
     end
+
+    def test_iterator
+      list = WaitList.new
+      a = Fiber.new {}
+      b = Fiber.new {}
+      c = Fiber.new {}
+
+      list.push(a)
+      list.push(b)
+      list.push(c)
+
+      iterator = list.each
+      list.clear
+
+      i = 0
+      iterator.each do |fiber|
+        case i
+        when 0
+          assert_equal a, fiber
+        when 1
+          assert_equal b, fiber
+        when 2
+          assert_equal c, fiber
+        else
+          raise "unreachable"
+        end
+        i += 1
+      end
+    end
   end
 end
