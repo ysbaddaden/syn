@@ -52,5 +52,49 @@ module Syn
       assert_equal (0..(ary.size - 1)).to_a, ary
       assert counter.lazy_get > 0
     end
+
+    def test_lock_unlock
+      rw = RWLock.new
+
+      done = false
+
+      rw.lock_read
+      rw.lock_read
+
+      ::spawn do
+        rw.lock_write
+        done = true
+      end
+
+      sleep(0.1)
+      refute done
+
+      rw.unlock_read
+      sleep(0.1)
+      refute done
+
+      rw.unlock_read
+      sleep(0.1)
+      assert done
+    end
+
+    def test_cant_lock_read_while_locked_for_write
+      rw = RWLock.new
+      rw.lock_write
+
+      done = false
+
+      ::spawn do
+        rw.lock_read
+        done = true
+      end
+
+      sleep(0.1)
+      refute done
+
+      rw.unlock_write
+      sleep(0.1)
+      assert done
+    end
   end
 end

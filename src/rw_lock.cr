@@ -6,15 +6,9 @@ require "./core/condition_variable"
 # Allows readers to run concurrently but ensures that they will never run
 # concurrently to a writer. Writers are mutually exclusive to both readers
 # and writers.
-#
-# FIXME: untested
 class Syn::RWLock
-  @mutex : Core::Mutex
-  @condition_variable : Core::ConditionVariable
-  @readers_count : UInt32
-
-  def initialize
-    @mutex = Core::Mutex.new(:unchecked)
+  def initialize(type : Core::Mutex::Type = :checked)
+    @mutex = Core::Mutex.new(type)
     @condition_variable = Core::ConditionVariable.new
     @readers_count = 0_u32
   end
@@ -55,9 +49,8 @@ class Syn::RWLock
 
   def unlock_read : Nil
     @mutex.synchronize do
-      if (@readers_count -= 1) == 0
-        @condition_variable.signal
-      end
+      @readers_count -= 1
+      @condition_variable.signal if @readers_count == 0
     end
   end
 
