@@ -11,9 +11,9 @@ module Syn::Core
 
     def test_push
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       assert_equal a, list.@head
@@ -36,9 +36,9 @@ module Syn::Core
 
     def test_shift?
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)
@@ -58,8 +58,8 @@ module Syn::Core
 
     def test_push_after_shift?
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
 
       list.push(a)
       list.shift?
@@ -72,9 +72,9 @@ module Syn::Core
 
     def test_each
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)
@@ -93,9 +93,9 @@ module Syn::Core
 
     def test_each_after_shift?
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)
@@ -114,17 +114,17 @@ module Syn::Core
 
     def test_clear
       list = WaitList.new
-      list.push(Fiber.new {})
-      list.push(Fiber.new {})
+      list.push(Fiber.new { })
+      list.push(Fiber.new { })
       list.clear
       assert_equal nil, list.@head
     end
 
     def test_push_after_clear
       list = WaitList.new
-      a = Fiber.new {}
+      a = Fiber.new { }
 
-      list.push(Fiber.new {})
+      list.push(Fiber.new { })
       list.clear
 
       list.push(a)
@@ -135,8 +135,8 @@ module Syn::Core
 
     def test_each_after_clear
       list = WaitList.new
-      list.push(Fiber.new {})
-      list.push(Fiber.new {})
+      list.push(Fiber.new { })
+      list.push(Fiber.new { })
       list.clear
       assert_equal nil, list.@head
       list.each { assert false, "expected block to have never been called" }
@@ -144,9 +144,9 @@ module Syn::Core
 
     def test_delete_head
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.delete(a)
@@ -163,9 +163,9 @@ module Syn::Core
 
     def test_delete_tail
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)
@@ -178,9 +178,9 @@ module Syn::Core
 
     def test_delete_inner
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)
@@ -193,9 +193,9 @@ module Syn::Core
 
     def test_iterator
       list = WaitList.new
-      a = Fiber.new {}
-      b = Fiber.new {}
-      c = Fiber.new {}
+      a = Fiber.new { }
+      b = Fiber.new { }
+      c = Fiber.new { }
 
       list.push(a)
       list.push(b)

@@ -88,7 +88,7 @@ module Syn::Core
       end
 
       if @type.reentrant? && @locked_by == Fiber.current
-        prevent_reentrancy_overflow! {}
+        prevent_reentrancy_overflow! { }
         @counter += 1
         return true
       end

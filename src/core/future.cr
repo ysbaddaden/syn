@@ -14,8 +14,8 @@ module Syn::Core
 
     enum State : UInt8
       INDETERMINATE = 0_u8
-      RESOLVED = 1_u8
-      FAILED = 2_u8
+      RESOLVED      = 1_u8
+      FAILED        = 2_u8
     end
 
     def initialize
@@ -63,7 +63,7 @@ module Syn::Core
     end
 
     @[AlwaysInline]
-    private def __get
+    private def __get(&)
       state = self.state
 
       if state == State::INDETERMINATE
