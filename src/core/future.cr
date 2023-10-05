@@ -10,6 +10,7 @@ module Syn::Core
   struct Future(T)
     @error : Exception | String | Nil
 
+    # :nodoc:
     enum State : UInt8
       INDETERMINATE = 0_u8
       RESOLVED      = 1_u8
