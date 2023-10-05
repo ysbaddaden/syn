@@ -15,6 +15,19 @@ class Syn::FutureTest < Minitest::Test
     assert_equal 456, value.get?
   end
 
+  def test_failed_get?
+    value = Future(Int32).new
+    assert_nil value.get?
+    value.fail
+    assert_raises(FailedError) { value.get? }
+
+    value = Future(Int32).new
+    assert_nil value.get?
+    value.fail(Exception.new("lorem ipsum"))
+    ex = assert_raises(Exception) { value.get? }
+    assert_equal "lorem ipsum", ex.message
+  end
+
   def test_get
     ready = WaitGroup.new(100)
     counter = Atomic.new(0)
@@ -40,6 +53,26 @@ class Syn::FutureTest < Minitest::Test
     assert_equal 789, value.get
   end
 
+  def test_failed_get
+    ready = WaitGroup.new(1)
+    value = Future(Int32).new
+    result = nil
+
+    ::spawn do
+      ready.done
+      result = assert_raises(FailedError) { value.get }
+    end
+
+    ::spawn do
+      ready.wait
+      value.fail
+    end
+
+    eventually(1.seconds) { assert_instance_of FailedError, result }
+
+    assert_raises(FailedError) { value.get }
+  end
+
   def test_get_timeout_returns_nil
     value = Future(Int32).new
     assert_nil value.get(1.millisecond)
@@ -49,6 +82,12 @@ class Syn::FutureTest < Minitest::Test
     value = Future(Int32).new
     value.set(12345)
     assert_equal 12345, value.get(1.millisecond)
+  end
+
+  def test_failed_get_timeout_returns_value
+    value = Future(Int32).new
+    value.fail
+    assert_raises(FailedError) { value.get(1.millisecond) }
   end
 
   def test_get_timeout_eventually_returns_value
@@ -71,6 +110,28 @@ class Syn::FutureTest < Minitest::Test
 
     eventually { assert done }
     assert_equal 980, result
+  end
+
+  def test_get_timeout_eventually_fails
+    ready = WaitGroup.new(1)
+    done = false
+
+    value = Future(Int32).new
+    result = nil
+
+    ::spawn do
+      ready.done
+      result = assert_raises(FailedError) { value.get(1.second) }
+      done = true
+    end
+
+    ::spawn do
+      ready.wait
+      value.fail
+    end
+
+    eventually { assert done }
+    assert_instance_of FailedError, result
   end
 
   def test_get_timeout_concurrency
@@ -96,5 +157,30 @@ class Syn::FutureTest < Minitest::Test
 
     wg.wait
     eventually { assert_equal 98_000, counter.get }
+  end
+
+  def test_failed_get_timeout_concurrency
+    ready = WaitGroup.new(100)
+    wg = WaitGroup.new(100)
+
+    failed = Atomic(Int32).new(0)
+    value = Future(Int32).new
+
+    100.times do
+      ::spawn do
+        ready.done
+        assert_raises(FailedError) { value.get(1.second) }
+        failed.add(1)
+        wg.done
+      end
+    end
+
+    ::spawn do
+      ready.wait
+      value.fail
+    end
+
+    wg.wait
+    assert_equal 100, failed.get
   end
 end

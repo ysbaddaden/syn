@@ -7,4 +7,8 @@ module Syn
   # Raised when a high level structure (e.g. Pool) reaches a timeout.
   class TimeoutError < Exception
   end
+
+  # Raised when a future failed without an explicit `Exception`.
+  class FailedError < Exception
+  end
 end

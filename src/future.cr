@@ -6,6 +6,8 @@ module Syn
   # Can be used to ask an `Agent` to compute a value asynchronously, while the
   # current fiber continues to do other things, yet be able to retrieve or wait
   # until the value is available.
+  #
+  # TODO: report a failure with an optional exception
   class Future(T)
     def initialize
       @future = Core::Future(T).new
@@ -13,18 +15,27 @@ module Syn
 
     # Sets the value and wakes up pending fibers.
     #
-    # TODO: raise if the value has already been resolved (?)
+    # TODO: raise if the future has already been resolved/failed
     def set(value : T) : T
       @future.set(value)
     end
 
+    # Report a failure when trying to resolve the future. Wakes up pending
+    # fibers.
+    #
+    # TODO: raise if the future has already been resolved/failed
+    def fail(error : Exception | String | Nil = nil) : Nil
+      @future.fail(error)
+    end
+
     # Returns the value if it was resolved. Returns `nil` otherwise without
-    # blocking.
+    # blocking. Raises an exception if the future has failed.
     def get? : T?
       @future.get?
     end
 
-    # Blocks the current fiber until the value is resolved.
+    # Blocks the current fiber until the value is resolved. Raises an exception
+    # if the future has failed.
     def get : T
       @future.get
     end
