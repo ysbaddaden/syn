@@ -52,7 +52,9 @@ module Syn::Core
 
         while fiber
           next_fiber = fiber.@__syn_next
-          Atomic::Ops.fence(:sequentially_consistent, false) # needed ?!
+          {% unless flag?(:interpreted) %}
+            Atomic::Ops.fence(:sequentially_consistent, false) # needed ?!
+          {% end %}
 
           yield fiber
 
