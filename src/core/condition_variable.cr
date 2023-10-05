@@ -23,6 +23,9 @@ module Syn::Core
     # Suspends the current fiber. The lockable is unlocked before the fiber is
     # suspended (the current fiber must be holding the lock) and will be locked
     # again after the fiber is resumed and before the function returns.
+    #
+    # In case you don't need a lockable you can pass `nil` and the condition
+    # variable will act as a notification system.
     def wait(lockable : Pointer(Lockable)?) : Nil
       current = Fiber.current
       @spin.synchronize { @waiting.push(current) }

@@ -3,7 +3,7 @@ require "./core/future"
 module Syn
   # An object that will eventually hold a value.
   #
-  # Can be used to ask an `Agent` to compute a value asynchronously, while the
+  # Can be passed to another fiber to compute a value asynchronously, while the
   # current fiber continues to do other things, yet be able to retrieve or wait
   # until the value is available.
   class Future(T)
@@ -39,7 +39,8 @@ module Syn
     end
 
     # Blocks the current fiber until the value is resolved or timeout is
-    # reached, in which case it returns `nil`.
+    # reached, in which case it returns `nil`. Raises an exception if the future
+    # has failed.
     @[Experimental("The timeout feature is experimental.")]
     def get(timeout : Time::Span) : T?
       @future.get(timeout)

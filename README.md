@@ -5,15 +5,23 @@ in Crystal.
 
 ## Status
 
-Syn is an experimental library. I aim to make it correct, but I can't state that
-it is, especially on all architectures (e.g. AARCH64) yet.
+Syn is no longer experimental (except for timeouts), but I can't guarantee it's
+working perfectly.
 
-## `Syn` namespace
+I aim for Syn to be safe and correct, for both strong (x86) and weak (aarch64)
+CPU architectures, but I didn't battle test it in harsh production environments,
+or in highly concurrent and parallel loads or benchmarks.
 
-High level abstractions to the underlying Syn::Core structs or completely new
-types built on top of the Syn::Core structs. They're implemented as classes, and
-thus allocated in the HEAP and always passed by reference. I.e. they're safe to
-use in any context.
+## `Syn` namespace (safe)
+
+Syn is separated into two layers: one safe (`Syn`) and one unsafe (`Syn::Core`).
+
+The `Syn` namespace contains high level abstractions to the underlying
+`Syn::Core` structs or completely new types built on top of the `Syn::Core`
+structs. They're implemented as classes, thus allocated in the HEAP and always
+passed by reference.
+
+I.e. they're safe to use in any context.
 
 ### `Syn::Mutex`
 
@@ -98,7 +106,8 @@ TODO: write an example.
 
 ### `Syn::Future(T)`
 
-An object that will eventually hold a value.
+An object that will eventually hold a value... or not in which case it will
+report a failure (exception).
 
 Example:
 
@@ -113,8 +122,7 @@ end
 value.get
 ```
 
-<!--
-### `Syn::Pool(T)`
+### `Syn::Pool(T)` (experimental)
 
 A shared pool of T with a maximum capacity. Trying to checkout when the pool is
 empty will create a new T up to capacity, then block until a T is available for
@@ -137,20 +145,24 @@ pool = Pool(Conn).new(capacity: 5) { Conn.new }
   end
 end
 ```
--->
 
 
-## `Syn::Core` namespace
+## `Syn::Core` namespace (unsafe)
 
-Syn::Core are low level structs that implement the actual synchronization logic.
+The `Syn::Core` namespace contains the low level structs that implement the
+actual synchronization logic.
 
 The advantage of structs is that you can embed the primitives right into the
 objects that need them and have them allocated next to each other when they need
-to interact together. It means less GC allocations, and less potentially
+to interact together. It means less GC allocations and less potentially
 scattered memory accesses. The disadvantage is that they're structs and thus
 unsafe to pass around (structs are passed by value, i.e. duplicated), and you
 must make sure to always pass them by reference (i.e. pointers) or to always
-access them directly as pure local or instance variables.
+access them directly as pure local or instance variables!
+
+The structs usually work the same as their class counterparts, with very detail
+differences (e.g. `Syn::Core::ConditionVariable#wait` takes a pointer when
+`Syn::ConditionVariable#wait` takes a reference).
 
 - `Syn::Core::AtomicLock` is an alternative to `Atomic::Flag` that uses the
   `:acquire` and `:release` memory ordering + fences (memory barriers) to
@@ -166,6 +178,8 @@ access them directly as pure local or instance variables.
   notification system).
 
 - `Syn::Core::WaitGroup` to wait until a set of fibers have terminated.
+
+- `Syn::Core::Future(T)` to wait until a value has been computed.
 
 The following types are the fundational types of the above core types:
 

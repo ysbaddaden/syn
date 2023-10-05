@@ -4,7 +4,7 @@ require "../error"
 module Syn::Core
   # An object that will eventually hold a value.
   #
-  # Can be used to ask an `Agent` to compute a value asynchronously, while the
+  # Can be passed to another fiber to compute a value asynchronously, while the
   # current fiber continues to do other things, yet be able to retrieve or wait
   # until the value is available.
   struct Future(T)
@@ -35,8 +35,7 @@ module Syn::Core
       value
     end
 
-    # Report a failure when trying to resolve the future. Wakes up pending
-    # fibers.
+    # Set the future has failed. Wakes up pending fibers.
     #
     # TODO: raise if the future has already been resolved
     def fail(error : Exception | String | Nil = nil) : Nil
@@ -50,13 +49,15 @@ module Syn::Core
       __get { return nil }
     end
 
-    # Blocks the current fiber until the value is resolved.
+    # Blocks the current fiber until the value is resolved and returned. Raises
+    # an exception if the future has failed.
     def get : T
       __get { @notification.wait(nil) }
     end
 
     # Blocks the current fiber until the value is resolved or timeout is
-    # reached, in which case it returns `nil`.
+    # reached, in which case it returns `nil`. Raises an exception if the future
+    # has failed.
     def get(timeout : Time::Span) : T?
       __get { return if @notification.wait(nil, timeout) }
     end

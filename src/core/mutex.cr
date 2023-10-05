@@ -242,10 +242,11 @@ module Syn::Core
       unlock
     end
 
-    # Identical to `#synchronize` but aborts if the lock couldn't be acquired
+    # Similar to `#synchronize` but aborts if the lock couldn't be acquired
     # until timeout is reached, in which case it returns false.
     #
-    # NOTE: unlike `#synchronize` it doesn't return the block's value!
+    # NOTE: unlike `#synchronize` it doesn't return the block's value, but
+    #       whether timeout was reached!
     @[Experimental("The timeout feature is experimental.")]
     def synchronize(timeout : Time::Span, &) : Bool
       if lock(timeout)
