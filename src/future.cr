@@ -6,8 +6,6 @@ module Syn
   # Can be used to ask an `Agent` to compute a value asynchronously, while the
   # current fiber continues to do other things, yet be able to retrieve or wait
   # until the value is available.
-  #
-  # TODO: report a failure with an optional exception
   class Future(T)
     def initialize
       @future = Core::Future(T).new

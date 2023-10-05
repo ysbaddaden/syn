@@ -7,8 +7,6 @@ module Syn::Core
   # Can be used to ask an `Agent` to compute a value asynchronously, while the
   # current fiber continues to do other things, yet be able to retrieve or wait
   # until the value is available.
-  #
-  # TODO: report a failure (with an optional exception)
   struct Future(T)
     @error : Exception | String | Nil
 
