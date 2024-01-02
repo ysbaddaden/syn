@@ -10,13 +10,8 @@ module Syn::Core
     end
 
     def call(& : ->) : Nil
-      old_value = Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :sequentially_consistent, false)
-
-      {% unless flag?(:interpreted) %}
-        Atomic::Ops.fence(:sequentially_consistent, false)
-      {% end %}
-
-      if old_value == 0_u8
+      if Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :sequentially_consistent, false) == 0_u8
+        {% if flag?(:arm) %} Syn.fence(:sequentially_consistent) {% end %}
         yield
       end
     end

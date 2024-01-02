@@ -2,11 +2,20 @@ module Syn
   # OPTIMIZE: consider using Atomic::Ops directly to specify acquire/release
   #           memory ordering instead of sequentially consistent (?)
 
+  alias MemoryOrder = LLVM::AtomicOrdering
+
+  @[AlwaysInline]
+  def self.fence(memory_order : MemoryOrder, single_thread = false) : Nil
+    {% unless flag?(:interpreted) %}
+      Atomic::Ops.fence(memory_order, single_thread)
+    {% end %}
+  end
+
   # :nodoc:
   @[AlwaysInline]
   def self.sleep(fiber : Fiber, timeout : Time::Span) : Bool
     fiber.timeout(timeout, Syn::TimeoutAction.new(timeout))
-    ::sleep # reschedule
+    ::sleep # suspend current fiber
 
     # 1_u8: doesn't make sense
     # 2_u8: another thread enqueued the fiber (direct resume)
@@ -23,18 +32,14 @@ module Syn
   @[AlwaysInline]
   def self.timeout_acquire(fiber : Fiber) : Nil
     fiber.@__syn_timeout.set(1_u8)
-    {% unless flag?(:interpreted) %}
-      Atomic::Ops.fence(:acquire, false)
-    {% end %}
+    {% if flag?(:arm) %} fence(:acquire) {% end %}
   end
 
   # :nodoc:
   @[AlwaysInline]
   def self.timeout_release(fiber : Fiber) : Nil
     fiber.@__syn_timeout.set(0_u8)
-    {% unless flag?(:interpreted) %}
-      Atomic::Ops.fence(:release, false)
-    {% end %}
+    {% if flag?(:arm) %} fence(:release) {% end %}
   end
 
   # :nodoc:

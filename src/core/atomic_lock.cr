@@ -1,32 +1,24 @@
 module Syn::Core
-  # Similar to `Atomic::Flag` but adds memory barriers (fences) in addition
-  # to the atomic instructions, and relies on the acquire/release memory
-  # ordering that should be suitable for locks.
-  #
-  # Basically, the atomic instructions tell the CPU to use an atomic operand on
-  # the CPU and usually their memory ordering also serves as hints to the
-  # compiler (here LLVM) to not reorder instructions across the atomic. The
-  # fences add another level of protection against weak CPU architectures (such
-  # as ARM), telling them to not reorder instructions across the fences at
-  # runtime.
-  #
-  # The memory fences should be noop and optimized away on non weak CPU
-  # architectures such as x86/64.
+  # Similar to `Atomic::Flag` but with acquire/release memory ordering (instead
+  # of sequentially consistent) and explicit memory barriers (fences) on
+  # architectures that need one (e.g. ARMv6 and ARMv7).
   struct AtomicLock
     def initialize
       @value = 0_u8
     end
 
-    # Acquires the lock. The operation is atomic, and any operation that happens
-    # _after_ the acquire won't be reordered before the acquire, either during
-    # compilation or live at runtime on weak CPU architectures.
+    # Tries to acquire the lock. The operation is atomic, and any operation that
+    # happens _after_ the acquire won't be reordered before the acquire, either
+    # during compilation or live at runtime on weak CPU architectures.
     def acquire? : Bool
-      if Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :acquire, false) == 0_u8
-        {% unless flag?(:interpreted) %} Atomic::Ops.fence(:acquire, false) {% end %}
-        true
-      else
-        false
-      end
+      ret = Atomic::Ops.atomicrmw(:xchg, pointerof(@value), 1_u8, :acquire, false) == 0_u8
+      {% if flag?(:arm) %} Syn.fence(:acquire) if ret {% end %}
+      ret
+    end
+
+    # Returns true if the lock was previously acquired.
+    def acquired? : Bool
+      Atomic::Ops.load(pointerof(@value), :sequentially_consistent, true) == 1_u8
     end
 
     # Releases the lock. The operation is atomic, and any operation that happens
@@ -34,7 +26,9 @@ module Syn::Core
     # compilation or live at runtime on weak CPU architectures.
     def release : Nil
       Atomic::Ops.store(pointerof(@value), 0_u8, :release, true)
-      {% unless flag?(:interpreted) %} Atomic::Ops.fence(:release, false) {% end %}
+
+      # armv6 / armv7 also need an explicit memory barrier
+      {% if flag?(:arm) %} Syn.fence(:release) {% end %}
     end
   end
 end
