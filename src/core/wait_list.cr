@@ -5,14 +5,26 @@ module Syn::Core
   # other concurrency objects. Implemented as a FIFO list. Assumes that a
   # `Fiber` can only ever be in a single `WaitList` at any given time, and will
   # be suspended while it's in the list.
+  #
+  # TODO: See Crystal::PointerLinkedList(T) and consider something that would
+  #       allocate the nodes on the stack while we wait, which would avoid
+  #       extending Fiber.
+  #
+  # TODO: Consider a doubly linked list: it would negatively impact push but
+  #       make delete faster (we delete on timeout).
+  #
+  # TODO: Consider an internal optimistic wait-free linked list (using atomics)
+  #       instead of requiring an external lock to protect the list (MT).
   struct WaitList
-    # NOTE: tail is only used when head is set to append fibers to the list,
-    #       which allows some optimization: no need to check or update it in
-    #       most situations (outside of `#push`). We also don't need to clear
-    #       the `@__syn_next` attribute either (it will be overwritten the next
-    #       time it's pushed to a wait list).
-    # TODO: we might still want to clear tail and `@__syn_next` to avoid keeping
-    #       hard references to dead fibers which may impact GC?
+    # Tail is only used when head is set to append fibers to the list. This
+    # could allow some optimization: no need to check or update it in most
+    # situations (outside of `#push`); we also don't need to clear the
+    # `@__syn_next` property either (it will be overwritten the next time it's
+    # pushed to a wait list).
+    #
+    # Yet, we should still clear `tail` and `@__syn_next` to avoid keeping hard
+    # references to dead fibers, which could lead the GC to keep some fiber
+    # objects when it could reclaim the memory.
 
     @head : Fiber?
     @tail : Fiber?
@@ -30,7 +42,7 @@ module Syn::Core
     def shift? : Fiber?
       if fiber = @head
         @head = fiber.@__syn_next
-        # fiber.@__syn_next = nil
+        fiber.__syn_next = nil # not needed but avoids HEAP pointer (GC)
         fiber
       end
     end
@@ -38,8 +50,9 @@ module Syn::Core
     def each(& : Fiber ->) : Nil
       fiber = @head
       while fiber
+        next_fiber = fiber.@__syn_next
         yield fiber
-        fiber = fiber.@__syn_next
+        fiber = next_fiber
       end
     end
 
@@ -52,12 +65,7 @@ module Syn::Core
 
         while fiber
           next_fiber = fiber.@__syn_next
-          {% unless flag?(:interpreted) %}
-            Atomic::Ops.fence(:sequentially_consistent, false) # needed ?!
-          {% end %}
-
           yield fiber
-
           fiber = next_fiber
         end
       end
@@ -77,7 +85,7 @@ module Syn::Core
 
       # not in list
       unless curr
-        # fiber.@__syn_next = nil
+        fiber.__syn_next = nil # not needed but avoids HEAP pointer (GC)
         return
       end
 
@@ -94,12 +102,25 @@ module Syn::Core
         @tail = prev
       end
 
-      # fiber.@__syn_next = nil
+      fiber.__syn_next = nil # not needed but avoids HEAP pointer (GC)
+    end
+
+    def consume_each(& : Fiber ->) : Nil
+      fiber = @head
+
+      while fiber
+        next_fiber = fiber.@__syn_next
+        yield fiber
+        fiber.__syn_next = nil
+        fiber = next_fiber
+      end
+
+      clear
     end
 
     def clear : Nil
       @head = nil
-      # @tail = nil
+      @tail = nil # not needed but avoids HEAP pointer (GC)
     end
   end
 end
