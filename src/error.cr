@@ -11,4 +11,9 @@ module Syn
   # Raised when a future failed without an explicit `Exception`.
   class FailedError < Exception
   end
+
+  # Raised when trying to resolve a future (set value or error) that has already
+  # been resolved.
+  class AlreadyResolved < Exception
+  end
 end

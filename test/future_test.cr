@@ -8,6 +8,31 @@ class Syn::FutureTest < Minitest::Test
     assert_equal 123, value.set(123)
   end
 
+  def test_fail
+    value = Future(Int32).new
+    value.fail(Exception.new)
+  end
+
+  def test_already_set
+    value = Future(Int32).new
+    value.set(123)
+
+    assert_raises(AlreadyResolved) { value.set(456) }
+    assert_raises(AlreadyResolved) { value.fail(Exception.new) }
+    assert_equal 123, value.get?
+  end
+
+  def test_already_failed
+    value = Future(Int32).new
+    exception = Exception.new
+    value.fail(exception)
+
+    assert_raises(AlreadyResolved) { value.fail(Exception.new) }
+    assert_raises(AlreadyResolved) { value.set(123) }
+    raised_exception = assert_raises(Exception) { value.get }
+    assert_same exception, raised_exception
+  end
+
   def test_get?
     value = Future(Int32).new
     assert_nil value.get?
