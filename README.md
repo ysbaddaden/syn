@@ -5,8 +5,9 @@ in Crystal.
 
 ## Status
 
-Syn is no longer experimental (except for timeouts), but I can't guarantee it's
-working perfectly.
+Syn is experimental. I don't guarantee any of the provided data structures to be
+correct or efficient. It's highly likely that timeouts aren't thread safe for
+example.
 
 I aim for Syn to be safe and correct, for both strong (x86) and weak (aarch64)
 CPU architectures, but I didn't battle test it in harsh production environments,
